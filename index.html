@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<meta charset=utf-8>
+<title>Bitstamp live trades example</title>
+<body>
+<h1>Bitstamp live trades</h1>
+<div id=trades_placeholder>waiting for some trades to happen...</div>
+<script src="https://d3dy5gmtp8yhk7.cloudfront.net/2.1/pusher.min.js"></script>
+<script>
+
+var placeholder = document.getElementById("trades_placeholder")
+var pusher = new Pusher('de504dc5763aeef9ff52');
+var trades_channel = pusher.subscribe('live_trades');
+var i = 0;
+
+trades_channel.bind('trade', function(data) {
+    if (i == 0) {
+        placeholder.innerHTML = '';
+    }
+    child = document.createElement("div");
+    child.innerHTML = data['id'] + ': ' + data['amount'] + ' BTC @ ' + data['price'] + ' USD';
+    placeholder.appendChild(child);
+    i++;
+});
+
+</script>
+</body>
+</html>
