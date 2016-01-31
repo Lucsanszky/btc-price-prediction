@@ -1,16 +1,14 @@
 {
-
-  "name": "application-name",
+  "name": "btc-trading",
   "version": "0.0.1",
-  "private": true,
-  "scripts": {
-    "start": "node app"
+  "dependencies": {},
+  "devDependencies": {
+    "express": "*",
+    "pusher-client": "*"
   },
-  "dependencies": {
-    "express": "3.1.0",
-    "jade": "*",
-    "mysql": "*",
-    "async": "*",
-    "node-uuid": "*"
-} 
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+  }
 }
