@@ -4,7 +4,8 @@
   "dependencies": {},
   "devDependencies": {
     "express": "*",
-    "pusher-client": "*"
+    "pusher-client": "*",
+    "forever": "*"
   },
   "engines": {
     "node": ">=0.10.0"
