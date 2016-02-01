@@ -6,10 +6,7 @@ var AWS       = require("aws-sdk");
 var pusher         = new Pusher('de504dc5763aeef9ff52');
 var trades_channel = pusher.subscribe('live_trades');
 
-AWS.config.update({
-  region: "us-west-2",
-  endpoint: "https://dynamodb.us-west-2.amazonaws.com"
-});
+AWS.config.loadFromPath('~/.ec2/credentials.json');
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
@@ -49,7 +46,7 @@ trades_channel.bind('trade', function(data) {
         	}
     	}
 	};
-	
+
     console.log("Adding a new item...");
 	docClient.put(params, function(err, data) {
     	if (err) {

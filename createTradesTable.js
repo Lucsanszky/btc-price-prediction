@@ -1,9 +1,6 @@
 var AWS = require("aws-sdk");
 
-AWS.config.update({
-  region: "us-west-2",
-  endpoint: "https://dynamodb.us-west-2.amazonaws.com"
-});
+AWS.config.loadFromPath('~/.ec2/credentials.json');
 
 var dynamodb = new AWS.DynamoDB();
 
