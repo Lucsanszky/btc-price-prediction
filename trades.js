@@ -50,6 +50,21 @@ mongoose.connection.on('error', function(err){
   console.log('database connect error '+err);
 }); // mongoose.connection.on()
 
+mongoose.connection.once('open', function() {
+  var greeting;
+  
+  console.log('database '+config.DATABASE+' is now open on '+config.HOST );
+  
+  // search if a greeting has already been saved in our db
+  Greeting.find( function(err, greetings){
+    if( !err && greetings ){ // at least one greeting record already exists in our db. we can use that
+      console.log(greetings.length+' greetings already exist in DB' );
+    } else { // no records found
+      console.log('no greetings in DB yet, creating one' );
+    }
+});
+});
+
 var server = http.createServer(
   function(request, response) {
     response.writeHead( 200, {"content-type": "text/plain"} );
