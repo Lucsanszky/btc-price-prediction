@@ -7,8 +7,7 @@ var pusher         = new Pusher('de504dc5763aeef9ff52');
 var trades_channel = pusher.subscribe('live_trades');
 
 AWS.config.update({
-  region: "us-west-2",
-  endpoint: "http://localhost:8000"
+  endpoint: "https://dynamodb.us-west-2.amazonaws.com"
 });
 
 var dynamodb = new AWS.DynamoDB();
