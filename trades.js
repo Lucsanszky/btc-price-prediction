@@ -10,7 +10,7 @@ var app            = express();
 var config = {
       "USER"     : "",                  // if your database has user/pwd defined
       "PASS"     : "",
-      "HOST"     : "ip-10-0-2-63.ec2.internal",  // the domain name of our MongoDB EC2 instance
+      "HOST"     : "10.0.2.63",  // the domain name of our MongoDB EC2 instance
       "PORT"     : "27017",             // this is the default port mongoDB is listening for incoming queries
       "DATABASE" : "test"         // the name of your database on that instance
     };
@@ -73,8 +73,9 @@ var server = http.createServer(
   }
 );
 
-server.listen( 8080 );
+//server.listen( 8080 );
+app.listen(8080);
 
 trades_channel.bind('trade', function(data) {
-  console.log(data);
+  //console.log(data);
 });
