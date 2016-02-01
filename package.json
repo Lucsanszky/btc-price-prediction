@@ -5,7 +5,8 @@
   "devDependencies": {
     "express": "*",
     "pusher-client": "*",
-    "forever": "*"
+    "forever": "*",
+    "mongoose": "*"
   },
   "engines": {
     "node": ">=0.10.0"
