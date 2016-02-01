@@ -6,7 +6,7 @@ var AWS       = require("aws-sdk");
 var pusher         = new Pusher('de504dc5763aeef9ff52');
 var trades_channel = pusher.subscribe('live_trades');
 
-AWS.config.loadFromPath('~/.ec2/credentials.json');
+AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 

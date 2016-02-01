@@ -1,6 +1,6 @@
 var AWS = require("aws-sdk");
 
-AWS.config.loadFromPath('~/.ec2/credentials.json');
+AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
 
 var dynamodb = new AWS.DynamoDB();
 
