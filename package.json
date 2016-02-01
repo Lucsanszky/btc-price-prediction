@@ -6,7 +6,7 @@
     "express": "*",
     "pusher-client": "*",
     "forever": "*",
-    "mongoose": "*"
+    "aws-sdk": "*"
   },
   "engines": {
     "node": ">=0.10.0"

@@ -1,69 +1,10 @@
 var http      = require('http');
 var Pusher    = require('pusher-client');
-var mongoose  = require('mongoose');
 var express   = require('express');
+var AWS       = require("aws-sdk");
 
 var pusher         = new Pusher('de504dc5763aeef9ff52');
 var trades_channel = pusher.subscribe('live_trades');
-var app            = express();
-
-var config = {
-      "USER"     : "",                  // if your database has user/pwd defined
-      "PASS"     : "",
-      "HOST"     : "10.0.2.63",  // the domain name of our MongoDB EC2 instance
-      "PORT"     : "27017",             // this is the default port mongoDB is listening for incoming queries
-      "DATABASE" : "test"         // the name of your database on that instance
-    };
-
-var dbPath  = "mongodb://" + config.USER + ":" +
-    config.PASS + "@"+
-    config.HOST + ":"+
-    config.PORT + "/"+
-    config.DATABASE;
-
-var standardGreeting = 'Hello World!';
-
-var db;              // our MongoDb database
-
-var greetingSchema;  // our mongoose Schema
-var Greeting;        // our mongoose Model
-
-// create our schema
-greetingSchema = mongoose.Schema({
-  sentence: String
-});
-// create our model using this schema
-Greeting = mongoose.model('Greeting', greetingSchema);
-
-// ------------------------------------------------------------------------
-// Connect to our Mongo Database hosted on another server
-//
-console.log('\nattempting to connect to remote MongoDB instance on another EC2 server '+config.HOST);
-
-if ( !(db = mongoose.connect(dbPath)) )
-  console.log('Unable to connect to MongoDB at '+dbPath);
-else 
-  console.log('connecting to MongoDB at '+dbPath);
-
-// connection failed event handler
-mongoose.connection.on('error', function(err){
-  console.log('database connect error '+err);
-}); // mongoose.connection.on()
-
-mongoose.connection.once('open', function() {
-  var greeting;
-  
-  console.log('database '+config.DATABASE+' is now open on '+config.HOST );
-  
-  // search if a greeting has already been saved in our db
-  Greeting.find( function(err, greetings){
-    if( !err && greetings ){ // at least one greeting record already exists in our db. we can use that
-      console.log(greetings.length+' greetings already exist in DB' );
-    } else { // no records found
-      console.log('no greetings in DB yet, creating one' );
-    }
-});
-});
 
 var server = http.createServer(
   function(request, response) {
@@ -73,8 +14,7 @@ var server = http.createServer(
   }
 );
 
-//server.listen( 8080 );
-app.listen(8080);
+server.listen( 8080 );
 
 trades_channel.bind('trade', function(data) {
   //console.log(data);
