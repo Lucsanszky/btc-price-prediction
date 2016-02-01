@@ -11,42 +11,51 @@ AWS.config.update({
   endpoint: "https://dynamodb.us-west-2.amazonaws.com"
 });
 
-var dynamodb = new AWS.DynamoDB();
+var docClient = new AWS.DynamoDB.DocumentClient();
 
-var params = {
-    TableName : "Trades",
-    KeySchema: [       
-        { AttributeName: "TradeID", KeyType: "HASH"},  //Partition key
-        { AttributeName: "Date", KeyType: "RANGE" }  //Sort key
-    ],
-    AttributeDefinitions: [       
-        { AttributeName: "TradeID", AttributeType: "N" },
-        { AttributeName: "Date", AttributeType: "N" }
-    ],
-    ProvisionedThroughput: {       
-        ReadCapacityUnits: 5, 
-        WriteCapacityUnits: 5
-    }
-};
-
-dynamodb.createTable(params, function(err, data) {
-    if (err) {
-        console.error("Unable to create table. Error JSON:", JSON.stringify(err, null, 2));
-    } else {
-        console.log("Created table. Table description JSON:", JSON.stringify(data, null, 2));
-    }
-});
+var table = "Trades";
 
 var server = http.createServer(
   function(request, response) {
     response.writeHead( 200, {"content-type": "text/plain"} );
-    response.write("Trades are written to the console...\n");
+    response.write("Trades are written to the console and the DB...\n");
     response.end();
   }
 );
 
-server.listen( 8080 );
+server.listen(8080);
+
+function getTimeStamp() {
+	var currentdate = new Date(); 
+	var datetime = currentdate.getDate() + "/"
+                   + (currentdate.getMonth()+1)  + "/" 
+                   + currentdate.getFullYear() + " "  
+                   + currentdate.getHours() + ":"  
+                   + currentdate.getMinutes() + ":" 
+                   + currentdate.getSeconds();
+
+    return datetime;
+}
 
 trades_channel.bind('trade', function(data) {
-  //console.log(data);
+	var params = {
+    	TableName: table,
+    	Item: {
+        	"TradeID": data['id'],
+        	"Date": getTimeStamp(),
+        	"TradeData": {
+            	"amount": data['amount'],
+            	"price": data['price'],
+        	}
+    	}
+	};
+	
+    console.log("Adding a new item...");
+	docClient.put(params, function(err, data) {
+    	if (err) {
+        	console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
+    	} else {
+        	console.log("Added item:", JSON.stringify(data, null, 2));
+    	}
+	});
 });
