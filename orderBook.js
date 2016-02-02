@@ -3,7 +3,7 @@ var Pusher    = require('pusher-client');
 var express   = require('express');
 var AWS       = require("aws-sdk");
 
-var pusher         = new Pusher('de504dc5763aeef9ff52');
+var pusher             = new Pusher('de504dc5763aeef9ff52');
 var order_book_channel = pusher.subscribe('diff_order_book');
 
 AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
@@ -36,7 +36,7 @@ function getTimeStamp() {
     return datetime;
 }
 
-order_book_channel.bind('trade', function(data) {
+order_book_channel.bind('data', function(data) {
 	var params = {
     	TableName: table,
     	Item: {
