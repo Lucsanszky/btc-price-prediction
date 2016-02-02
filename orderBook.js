@@ -22,6 +22,8 @@ var server = http.createServer(
 
 server.listen(8081);
 
+console.log('test');
+
 function getTimeStamp() {
 	var currentdate = new Date(); 
 	var datetime = currentdate.getDate() + "/"
@@ -34,7 +36,7 @@ function getTimeStamp() {
     return datetime;
 }
 
-trades_channel.bind('trade', function(data) {
+order_book_channel.bind('trade', function(data) {
 	var params = {
     	TableName: table,
     	Item: {
