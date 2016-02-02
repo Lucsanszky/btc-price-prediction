@@ -4,18 +4,18 @@ var express   = require('express');
 var AWS       = require("aws-sdk");
 
 var pusher         = new Pusher('de504dc5763aeef9ff52');
-var trades_channel = pusher.subscribe('live_trades');
+var trades_channel = pusher.subscribe('diff_order_book');
 
 AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
-var table = "Trades";
+var table = "OrderBook";
 
 var server = http.createServer(
   function(request, response) {
     response.writeHead( 200, {"content-type": "text/plain"} );
-    response.write("Trades are written to the console and the DB...\n");
+    response.write("Order book data are written to the console and the DB...\n");
     response.end();
   }
 );
@@ -38,11 +38,10 @@ trades_channel.bind('trade', function(data) {
 	var params = {
     	TableName: table,
     	Item: {
-        	"TradeID": data['id'],
         	"Date": getTimeStamp(),
-        	"TradeData": {
-            	"amount": data['amount'],
-            	"price": data['price'],
+        	"OrderBookData": {
+            	"bids": data['bids'],
+            	"asks": data['asks'],
         	}
     	}
 	};
