@@ -11,6 +11,7 @@ AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 var table = "OrderBook";
+var id = 0;
 
 var server = http.createServer(
   function(request, response) {
@@ -40,6 +41,7 @@ order_book_channel.bind('data', function(data) {
 	var params = {
     	TableName: table,
     	Item: {
+          "ID": id,
         	"Date": getTimeStamp(),
         	"OrderBookData": {
             	"bids": data['bids'],
@@ -56,4 +58,7 @@ order_book_channel.bind('data', function(data) {
         	console.log("Added item:", JSON.stringify(params, null, 2));
     	}
 	});
+
+  id++;
+
 });

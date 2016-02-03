@@ -7,9 +7,11 @@ var dynamodb = new AWS.DynamoDB();
 var params = {
     TableName : "OrderBook",
     KeySchema: [       
-        { AttributeName: "Date", KeyType: "HASH"}  //Partition key
+        { AttributeName: "ID", KeyType: "HASH"},  //Partition key
+        { AttributeName: "Date", KeyType: "RANGE" }  //Sort key
     ],
     AttributeDefinitions: [       
+        { AttributeName: "ID", AttributeType: "N" },
         { AttributeName: "Date", AttributeType: "S" }
     ],
     ProvisionedThroughput: {       
