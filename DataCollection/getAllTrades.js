@@ -10,6 +10,10 @@ var params = {
     Count: 'true'
 };
 
+var scanComplete = false,
+    itemCountTotal = 0,
+    consumedCapacityUnitsTotal = 0;
+
 async.until( function() { return scanComplete; },
              function (callback) {
                 docClient.scan(params, function (err, result) {
