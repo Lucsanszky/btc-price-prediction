@@ -1,4 +1,5 @@
 var AWS = require("aws-sdk");
+var async = require('async');
 
 AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
 
