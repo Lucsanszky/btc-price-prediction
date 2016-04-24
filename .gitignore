@@ -2,4 +2,5 @@ btc-data/*
 data-collection/DynamoDBtoCSV/*
 btc-data/
 data-collection/DynamoDBtoCSV/
-data-collection/node_modules/
+*/.DS_Store
+*/node_modules
