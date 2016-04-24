@@ -1,7 +1,9 @@
 {
   "name": "btc-trading",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "dynamodbexportcsv": "^0.1.5"
+  },
   "devDependencies": {
     "express": "*",
     "pusher-client": "*",
@@ -11,6 +13,5 @@
   "engines": {
     "node": ">=0.10.0"
   },
-  "scripts": {
-  }
+  "scripts": {}
 }

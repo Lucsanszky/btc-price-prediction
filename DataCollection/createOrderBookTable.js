@@ -1,3 +1,7 @@
+/*
+** Source: http://docs.aws.amazon.com/amazondynamodb/latest/gettingstartedguide/GettingStarted.NodeJs.01.html 
+*/
+
 var AWS = require("aws-sdk");
 
 AWS.config.loadFromPath('/home/ec2-user/.ec2/credentials.json');
@@ -7,8 +11,8 @@ var dynamodb = new AWS.DynamoDB();
 var params = {
     TableName : "OrderBook",
     KeySchema: [       
-        { AttributeName: "ID", KeyType: "HASH"},  //Partition key
-        { AttributeName: "Date", KeyType: "RANGE" }  //Sort key
+        { AttributeName: "ID", KeyType: "HASH"},
+        { AttributeName: "Date", KeyType: "RANGE" }
     ],
     AttributeDefinitions: [       
         { AttributeName: "ID", AttributeType: "N" },

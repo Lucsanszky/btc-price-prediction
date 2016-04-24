@@ -1,3 +1,7 @@
+/*
+** Source: http://stackoverflow.com/questions/15543418/how-to-get-the-result-of-describetable-amazon-dynamodb-method-in-node-js
+*/
+
 var AWS = require("aws-sdk");
 var async = require('async');
 

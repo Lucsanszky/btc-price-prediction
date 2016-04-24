@@ -1,3 +1,8 @@
+/*
+** Source: http://docs.aws.amazon.com/amazondynamodb/latest/gettingstartedguide/GettingStarted.NodeJs.03.html
+*/
+
+
 var http      = require('http');
 var Pusher    = require('pusher-client');
 var express   = require('express');
