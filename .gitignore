@@ -3,3 +3,4 @@ btc-data/*
 btc-data/
 */.DS_Store
 */node_modules
+*__pycache__
