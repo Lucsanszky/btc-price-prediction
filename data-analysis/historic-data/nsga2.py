@@ -12,7 +12,6 @@ toolb = base.Toolbox()
 # Note: chart names could occasionally change on blockchain.info
 URL = 'https://blockchain.info/charts/%s?timespan=all&format=csv'
 CHARTS = ['market-price',
-          'market-cap', 
           'transaction-fees-usd', 
           'n-transactions', 
           'n-unique-addresses', 
