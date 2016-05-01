@@ -7,13 +7,17 @@ from sklearn import preprocessing as preproc
 
 toolb = base.Toolbox()
 
-# # Data Preprocessing
-
 # Note: chart names could occasionally change on blockchain.info
 URL = 'https://blockchain.info/charts/%s?timespan=all&format=csv'
 CHARTS = ['market-price',
-          'transaction-fees-usd', 
+          'transaction-fees-usd',
+          'network-deficit', 
           'n-transactions', 
+          'n-transactions-excluding-popular',
+          'n-transactions-excluding-chains-longer-than-10',
+          'n-transactions-excluding-chains-longer-than-100',
+          'n-transactions-excluding-chains-longer-than-1000',
+          'n-transactions-excluding-chains-longer-than-10000',
           'n-unique-addresses', 
           'n-transactions-per-block',
           'n-orphaned-blocks',
@@ -21,10 +25,8 @@ CHARTS = ['market-price',
           'estimated-transaction-volume-usd',
           'trade-volume',
           'tx-trade-ratio',
-          'cost-per-transaction',
           'hash-rate',
           'difficulty',
-          'miners-revenue',
           'median-confirmation-time',
           'bitcoin-days-destroyed',
           'avg-block-size'
@@ -67,45 +69,42 @@ def prep_data(date_from, date_to):
         df_standard = pd.DataFrame(data=data_np_standard, index=df.index, columns=df.columns)
         FEATURES.append(df_standard)
 
-# # Configurable fitness function
-
 def filter_features(mask):
-    #print(FEATURES)
     return list(map(lambda t: t[1], filter(lambda t: t[0], zip(mask, FEATURES))))
 
 def fitness_fun(model):
     method, metric, indiv = model
+
+    # Sometimes the genetic algorithm produces an all-zero chromosome,
+    # which would brake the code. If this 
     if(sum(indiv) == 0):
         indiv[0] = 1
     
     filtered_features = filter_features(indiv)
     size = len(filtered_features)
     filtered_features = pd.concat(filtered_features, axis = 1)
-    btc_features = pd.DataFrame(filtered_features.values).as_matrix()
-    btc_target = pd.DataFrame(FRAMES[0]).as_matrix().flatten()
     
-    # 60% of the data will be used for training,
-    # 20% will be used for validation and testing.
+    # 70% of the data will be used for training,
+    # 15% will be used for validation and testing.
     
-    btc_X_train = btc_features[:int(0.7*len(btc_features))]
-    btc_X_validation = btc_features[int(0.7*len(btc_features)):int(0.85*len(btc_features))]
+    train_dates = filtered_features.index[:int(0.7*len(filtered_features))]
 
-    btc_y_train = btc_target[:int(0.7*len(btc_target))]
-    btc_y_validation = btc_target[int(0.7*len(btc_target)):int(0.85*len(btc_target))]
+    btc_X_train = filtered_features[train_dates[0] : train_dates[-1]]
+    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[0] : train_dates[-1]]
+
+    valid_dates = filtered_features.index[int(0.7*len(filtered_features)) : int(0.85*len(filtered_features))]
+    
+    btc_X_valid = filtered_features[valid_dates[0] : valid_dates[-1]]
+    btc_y_valid = pd.DataFrame(FRAMES[0])[valid_dates[0] : valid_dates[-1]]
 
     # Train the learner on the training data
     # and evaluate the performance by the test data
 
     method.fit(btc_X_train, btc_y_train)
     
-    score = metric(btc_X_validation, btc_y_validation)
+    score = metric(btc_X_valid, btc_y_valid)
     
     return score, size
-
-
-# # NSGA2 feature selection function
-
-# In[4]:
 
 def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
     creator.create("FitnessMulti", base.Fitness, weights = objective)
@@ -132,10 +131,14 @@ def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
     for gen in range(gen_num):
         offspring = algorithms.varOr(population, toolb, lambda_ = indiv_num, cxpb = 0.5, mutpb = 0.1)
         hof.update(offspring)
+
         fits = map (toolb.evaluate, map(lambda x: (method, metric, x), offspring))
+
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
+
         population = toolb.select(offspring + population, k = indiv_num)
+
         best[gen] = hof[0].fitness.values[0]
         top_RMSE = hof[0]
 
