@@ -76,7 +76,7 @@
 # * http://sci2s.ugr.es/sites/default/files/files/Teaching/OtherPostGraduateCourses/MasterEstructuras/bibliografia/Deb_NSGAII.pdf
 # * http://cs229.stanford.edu/proj2014/Isaac%20Madan,%20Shaurya%20Saluja,%20Aojia%20Zhao,Automated%20Bitcoin%20Trading%20via%20Machine%20Learning%20Algorithms.pdf
 
-# In[13]:
+# In[1]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -87,7 +87,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[14]:
+# In[2]:
 
 from nsga2 import *
 from IPython.display import display
@@ -107,9 +107,10 @@ sns.set()
 
 # # Data pre-processing
 
-# In[15]:
+# In[6]:
 
 widgets.interact(prep_data, date_from = '1/4/2012', date_to = '4/13/2016')
+get_ipython().magic("timeit prep_data('1/4/2012', '4/13/2016')")
 
 
 # # Regression plots
@@ -128,7 +129,7 @@ sns.set()
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[5]:
+# In[8]:
 
 def feature_selection(gen_num, indiv_num):
     
@@ -167,6 +168,7 @@ def feature_selection(gen_num, indiv_num):
 widgets.interact(feature_selection,  
                  gen_num = 100, 
                  indiv_num = 35)
+get_ipython().magic('timeit feature_selection(100, 35)')
 
 
 # # Visualizing the actual and predicted prices 
