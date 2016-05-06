@@ -10,6 +10,9 @@ toolb = base.Toolbox()
 # Note: chart names could occasionally change on blockchain.info
 URL = 'https://blockchain.info/charts/%s?timespan=all&format=csv'
 CHARTS = ['market-price',
+          'market-cap',
+          'miners-revenue',
+          'cost-per-transaction',
           'transaction-fees-usd',
           'network-deficit', 
           'n-transactions', 
@@ -41,17 +44,7 @@ def prep_data(date_from, date_to):
     del FRAMES[:]
     del FEATURES[:]
     
-    # Create DataFrame from the market-price
-    data = pd.read_csv(URL % CHARTS[0], parse_dates=[0], date_parser = date_parse)
-    data.columns = ['date', CHARTS[0]]
-    
-    df = pd.DataFrame(data)
-    df['date'] = df['date'].apply(lambda x: x.date())
-    df = df.drop_duplicates(['date']).set_index('date').reindex(pd.date_range(start = date_from, end = date_to))
-    FRAMES.append(df)
-
-    # Create data frames from the rest of the charts
-    for chart in CHARTS[1:]:
+    for chart in CHARTS:
         data = pd.read_csv(URL % chart, parse_dates=[0], date_parser = date_parse)
         data.columns = ['date', chart]
     
@@ -89,13 +82,14 @@ def fitness_fun(model):
     
     train_dates = filtered_features.index[:int(0.7*len(filtered_features))]
 
-    btc_X_train = filtered_features[train_dates[0] : train_dates[-1]]
-    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[0] : train_dates[-1]]
+    btc_X_train = filtered_features[train_dates[0] : train_dates[-2]]
+    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[1] : train_dates[-1]]
+
 
     valid_dates = filtered_features.index[int(0.7*len(filtered_features)) : int(0.85*len(filtered_features))]
     
-    btc_X_valid = filtered_features[valid_dates[0] : valid_dates[-1]]
-    btc_y_valid = pd.DataFrame(FRAMES[0])[valid_dates[0] : valid_dates[-1]]
+    btc_X_valid = filtered_features[valid_dates[0] : valid_dates[-2]]
+    btc_y_valid = pd.DataFrame(FRAMES[0])[valid_dates[1] : valid_dates[-1]]
 
     # Train the learner on the training data
     # and evaluate the performance by the test data
@@ -143,6 +137,6 @@ def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
         top_RMSE = hof[0]
 
     chromosome = hof[0]
-    selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS[1:]))))
+    selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS))))
     
     return best, selected_features, chromosome

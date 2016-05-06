@@ -100,36 +100,37 @@ import seaborn as sns
 from sklearn import preprocessing as preproc, datasets, linear_model
 from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr, mean_absolute_error as mae
 
-pd.set_option('html', False)
+#pd.set_option('html', False)
 np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
 # # Data pre-processing
 
-# In[6]:
+# In[3]:
 
 widgets.interact(prep_data, date_from = '1/4/2012', date_to = '4/13/2016')
-get_ipython().magic("timeit prep_data('1/4/2012', '4/13/2016')")
+get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
 
 
 # # Regression plots
 
-# In[4]:
+# In[103]:
 
 data = pd.concat(FRAMES, axis = 1)
 sns.set_context("notebook", font_scale=1.35)
-sns.pairplot(data, x_vars = CHARTS[1:5], y_vars = CHARTS[0], size = 7, kind = 'reg')
-sns.pairplot(data, x_vars = CHARTS[5:9], y_vars = CHARTS[0], size = 7, kind = 'reg')
-sns.pairplot(data, x_vars = CHARTS[9:13], y_vars = CHARTS[0], size = 7, kind = 'reg')
-sns.pairplot(data, x_vars = CHARTS[13:17], y_vars = CHARTS[0], size = 7, kind = 'reg')
-sns.pairplot(data, x_vars = CHARTS[17:], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[1:4], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[4:8], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[8:12], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[12:16], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[16:20], y_vars = CHARTS[0], size = 7, kind = 'reg')
+sns.pairplot(data, x_vars = CHARTS[20:], y_vars = CHARTS[0], size = 7, kind = 'reg')
 sns.set()
 
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[8]:
+# In[104]:
 
 def feature_selection(gen_num, indiv_num):
     
@@ -168,16 +169,15 @@ def feature_selection(gen_num, indiv_num):
 widgets.interact(feature_selection,  
                  gen_num = 100, 
                  indiv_num = 35)
-get_ipython().magic('timeit feature_selection(100, 35)')
 
 
 # # Visualizing the actual and predicted prices 
 
-# In[ ]:
+# In[106]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
-cbs = map(lambda x: widgets.Checkbox(description = x, value = False), CHARTS[1:])
+cbs = map(lambda x: widgets.Checkbox(description = x, value = False), CHARTS)
 box.children=[i for i in cbs]
 display(box)
 
@@ -188,7 +188,7 @@ def evaluate(b):
     regr = linear_model.LinearRegression()
     
     # Populate the checkbox placeholder
-    for i in range(len(CHARTS[1:])):
+    for i in range(len(CHARTS)):
         selected.append(box.children[i].value)
 
     filtered_features = filter_features(selected)
@@ -198,8 +198,11 @@ def evaluate(b):
     train_dates = filtered_features.index[:int(0.7*len(filtered_features))]
     
     # Generate the training set based on the date indices
-    btc_X_train = filtered_features[train_dates[0] : train_dates[-1]]
-    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[0] : train_dates[-1]]
+    btc_X_train = filtered_features[train_dates[0] : train_dates[-2]]
+    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[1] : train_dates[-1]]
+    
+    print(btc_X_train.tail())
+    print(btc_y_train.head())
 
     # Train the learner on the training data
     # and evaluate the performance by the test data
@@ -210,19 +213,22 @@ def evaluate(b):
     test_dates = filtered_features.index[int(0.85*len(filtered_features)):]
     
     # Generate the test set based on the date indices
-    btc_X_test = filtered_features[test_dates[0] : test_dates[-1]]
-    btc_y_test = pd.DataFrame(FRAMES[0])[test_dates[0] : test_dates[-1]]
+    btc_X_test = filtered_features[test_dates[0] : test_dates[-2]]
+    btc_y_test = pd.DataFrame(FRAMES[0])[test_dates[1] : test_dates[-1]]
+    
+    print(btc_X_test.head())
+    print(btc_y_test.head())
     
     # Create a dataframe from the predicted values
-    btc_y_pred = pd.DataFrame(regr.predict(btc_X_test), columns = ['market-price'])
-    btc_y_pred.set_index(btc_X_test.index,inplace = True)
+    btc_y_pred = pd.DataFrame(regr.predict(btc_X_test[1:]), columns = ['market-price'])
+    btc_y_pred.set_index(btc_X_test.index[1:],inplace = True)
     
     # Calculate the RMSE and MAE metric scores
-    rmse_score = np.sqrt(mse(btc_y_test, btc_y_pred))
-    mae_score = mae(btc_y_test, btc_y_pred)
+    rmse_score = np.sqrt(mse(btc_y_test[:-1], btc_y_pred))
+    mae_score = mae(btc_y_test[:-1], btc_y_pred)
     
     # Calculate the classification accuracy
-    act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_test.values, btc_y_test.values[1:])))
+    act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_test.values, btc_y_test.values[1:-1])))
     pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_pred.values, btc_y_pred.values[1:])))
     act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
     accuracy = np.sum(act_pred_cmp) / len(act_ticks)
@@ -235,25 +241,71 @@ def evaluate(b):
     
     # Create a dataframe for residual plots
     resid_df = pd.concat([btc_X_test, btc_y_pred], axis = 1)
-    resid_df.rename(columns = {'market-price': 'residuals'}, inplace=True)
+    #resid_df.rename(columns = {'market-price': 'residuals'}, inplace=True)
+    print(btc_X_test.shape)
+    print(btc_y_pred.shape)
     
     # Plot the residuals
     sns.set_context("notebook", font_scale=2.5)
-    g = sns.PairGrid(resid_df, x_vars=list(filtered_features.columns), y_vars=['residuals'], size=7)
+    g = sns.PairGrid(resid_df, x_vars=list(filtered_features.columns), y_vars=['market-price'], size=7)
     g.map(sns.residplot)
     sns.set()
     
     # Plot the time series of the actual and predicted values
     plt.figure(figsize = (20,10))
-    sns.tsplot(data = [btc_y_test.values, btc_y_pred.values])
+    sns.tsplot(data = [btc_y_test.values[:-1], btc_y_pred.values])
     
     plt.figure(figsize = (20,10))
     plt.plot(btc_y_test.index, btc_y_test, label = 'Actual Prices')
-    plt.plot(btc_y_test.index, btc_y_pred, label = 'Predicted Prices')
+    plt.plot(btc_X_test.index[1:], btc_y_pred, label = 'Predicted Prices')
     plt.legend()
+    
+    print(btc_y_test.head())
+    print(btc_y_pred.head())
     
 button.on_click(evaluate)
 display(button)
+
+
+# In[101]:
+
+url = URL = 'https://blockchain.info/charts/market-price?timespan=all&format=csv'
+date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
+
+regr = linear_model.LinearRegression()
+
+data = pd.read_csv(url, parse_dates=[0], date_parser = date_parse)
+data.columns = ['Date', 'Price']
+data.set_index('Date', inplace = True)
+data.index = pd.to_datetime(data.index)
+
+X_train = data['2012-01-04' : '2014-12-30']
+y_train = data['2012-01-05' : '2014-12-31']
+X_test = data['2014-12-30':'2016-05-07']
+y_test = data['2014-12-31':'2016-05-07']
+
+print(X_train)
+print(y_train)
+
+regr.fit(X_train, y_train)
+
+y_pred = regr.predict(X_test[1:])
+
+act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_test.values, y_test.values[1:-1])))
+pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_pred, y_pred[1:])))
+act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
+accuracy = np.sum(act_pred_cmp) / len(act_ticks)
+
+print(accuracy)
+
+
+plt.figure(figsize = (20,10))
+plt.plot(y_test.index, y_test, label = 'Actual Prices')
+plt.plot(X_test.index[1:], y_pred, label = 'Predicted Prices')
+plt.legend()
+
+#print(y_test.tail())
+print(y_pred)
 
 
 # In[ ]:

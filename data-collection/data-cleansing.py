@@ -1,7 +1,18 @@
 
 # coding: utf-8
 
-# In[244]:
+# In[1]:
+
+get_ipython().magic('matplotlib inline')
+
+get_ipython().magic('load_ext autoreload')
+get_ipython().magic('autoreload 2')
+
+get_ipython().magic('load_ext version_information')
+get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
+
+
+# In[2]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -20,6 +31,8 @@ import seaborn as sns
 np.set_printoptions(threshold=np.nan)
 sns.set()
 
+
+# # Transform collected trade data into proper format and export it
 
 # In[137]:
 
@@ -42,98 +55,218 @@ data.sort_values(by = 'Trade ID', inplace = True)
 data.to_csv(path_or_buf='../btc-data/BTC_Trades_clean.csv')
 
 
-# In[258]:
+# # Transform collected order book data into proper format
 
-def generate_ob_frame():
-    path = '../btc-data/BTC_OB_raw.csv'
-    date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
+# In[15]:
 
-    data = pd.read_csv(path, sep='",', nrows=5000)
+path = '../btc-data/BTC_OB_raw.csv'
+date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
 
-    data.rename(columns = {data.columns[0]: 'LOB Data', 
-                           data.columns[1]: 'ID', 
-                           data.columns[2]: 'Date'}, inplace = True)
+data = pd.read_csv(path, sep='",')
 
-    data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('asks', 'asks ', x))
-    data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('bids', 'bids ', x))
-    data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('[^0-9,.,asks ,bids ,]', '', x))
-    data['ID'] = data['ID'].map(lambda x: re.sub('\D', '', x))
-    data['Date'] = data['Date'].map(lambda x: re.sub('[^0-9,/,:, ]', '', x))
+data.rename(columns = {data.columns[0]: 'LOB Data', 
+                       data.columns[1]: 'ID', 
+                       data.columns[2]: 'Date'}, inplace = True)
 
-    data['Date'] = data['Date'].map(date_parse)
+data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('asks', 'asks ', x))
+data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('bids', 'bids ', x))
+data['LOB Data'] = data['LOB Data'].map(lambda x: re.sub('[^0-9,.,asks ,bids ,]', '', x))
+data['ID'] = data['ID'].map(lambda x: re.sub('\D', '', x))
+data['Date'] = data['Date'].map(lambda x: re.sub('[^0-9,/,:, ]', '', x))
 
-    bids = data['LOB Data'].map(lambda x: re.split(',', re.sub('bids ', '', re.sub('^asks [0-9,.]*', '', x))))
-    asks = data['LOB Data'].map(lambda x: re.split(',', re.sub('asks ', '', re.sub('bids [0-9,.]*', '', x)[:-1])))
+data['Date'] = data['Date'].map(date_parse)
 
-    data.insert(1, 'Bids', bids)
-    data.insert(1, 'Asks', asks)
+bids = data['LOB Data'].map(lambda x: re.split(',', re.sub('bids ', '', re.sub('^asks [0-9,.]*', '', x))))
+asks = data['LOB Data'].map(lambda x: re.split(',', re.sub('asks ', '', re.sub('bids [0-9,.]*', '', x)[:-1])))
 
-    data['Bids'] = data['Bids'].map(lambda x: list(zip(x[::2], x[1::2])))
-    data['Asks'] = data['Asks'].map(lambda x: list(zip(x[::2], x[1::2])))
+data.insert(1, 'Bids', bids)
+data.insert(1, 'Asks', asks)
 
-    data.set_index('Date', inplace = True)
-    data.drop('LOB Data', axis = 1, inplace = True)
+data['Bids'] = data['Bids'].map(lambda x: list(zip(x[::2], x[1::2])))
+data['Asks'] = data['Asks'].map(lambda x: list(zip(x[::2], x[1::2])))
 
-    data = data[['ID','Asks', 'Bids']]
-    data['ID'] = data['ID'].map(lambda x: int(x))
-    data.sort_values(by = 'ID', inplace = True)
+data.set_index('Date', inplace = True)
+data.drop('LOB Data', axis = 1, inplace = True)
+
+data = data[['ID','Asks', 'Bids']]
+data['ID'] = data['ID'].map(lambda x: int(x))
+data['Asks'] = data['Asks'].map(lambda x: list(map(lambda t: (float(t[0]), float(t[1])), x)))
+data['Bids'] = data['Bids'].map(lambda x: list(map(lambda t: (float(t[0]), float(t[1])), x)))
+data.sort_values(by = 'ID', inplace = True)
 
 #data.to_csv(path_or_buf='../btc-data/BTC_OB_clean_test.csv')
-get_ipython().magic('time generate_ob_frame()')
 
 
-# In[257]:
+# # Recreate the order book - NOT WORKING
 
-askside = []
-bidside = []
+# In[129]:
 
-print(data.tail())
+askside = [ (373.1,0.53671),
+            (373.23,17.24),
+            (373.27,7.9555),
+            (373.28,1.3363),
+            (373.29,0.11771),
+            (373.5,55.04631),
+            (373.55,10.6796),
+            (373.56,1.43616041),
+            (373.59,0.26566839),
+            (373.6,1.43882788),
+            (373.61,1.43841224),
+            (373.65,0.2630484),
+            (373.71,1.69908455),
+            (373.73,0.43790512),
+            (373.75,1.54945824),
+            (373.77,1.85661036),
+            (373.78,0.17786362),
+            (373.8,2.76357342),
+            (373.81,1.73747649),
+            (373.82,1.16956076)
+]
+bidside = [(372.85,2.61805646),
+           (372.84,8.9237),
+           (372.67,8.0285),
+           (372.66,3.28509036),
+           (372.6,0.02326771),
+           (372.25,10.6798),
+           (372.24,6.493),
+           (372.2,2.0),
+           (371.96,6.692),
+           (371.74,0.04),
+           (371.73,7.265),
+           (371.7,0.02231636),
+           (371.49,6.928),
+           (371.4,0.02233438),
+           (371.28,7.441),
+           (371.1,0.02235244),
+           (371.04,6.84),
+           (370.9,0.262),
+           (370.88,2.16480323),
+           (370.86,45.75)
+]
 
-for i in range(len(data)):
+
+#print(data.tail())
+#data.sort_values(by = 'ID', inplace = True)
+#print(data.ix[5, 'Asks'])
+    
+for i in range(int(len(data)/100)):
+    #print('Asks: ', askside)
+    #print('To update: ', asks)
+    
     for ask in data.ix[i, 'Asks']:
-        if float(ask[0]) in askside:
-            if float(ask[1]) == 0:
-                askside.remove(float(ask[0]))
-            else:
-                index = askside.index(ask[0])
-                #update volume
-                askside[index][1] += ask[1]
-        elif len(askside) >= 50:
-            if float(ask[1]) != 0:
-                if max(askside) > ask[0]:
-                    askside.remove(max(askside))
-                    askside.append((float(ask[0]), float(ask[1])))
-        else:
-            if float(ask[1]) != 0:
-                askside.append((float(ask[0]), float(ask[1])))
-    
+        found = False
+        for j in range(len(askside)):
+            price = askside[j][0]
+            vol = askside[j][1]
+        if not(found):
+            if price == ask[0]:
+                if ask[1] == 0:
+                    del askside[j]
+                else:
+                    del askside[j]
+                    askside.insert(j, ask)
+                found = True
+            elif price < ask[0]:
+                if ask[1] > 0:
+                    askside.insert(j, ask)
+                found = True
+
+    #while len(askside) > 20:
+        #askside.remove(askside[-1])
+            
     for bid in data.ix[i, 'Bids']:
-        if float(bid[0]) in bidside:
-            if float(bid[1]) == 0:
-                bidside.remove(float(bid[0]))
-            else:
-                index = bidside.index(bid[0])
-                #update volume
-                bidside[index][1] += bid[1]
-        elif len(bidside) >= 50:
-            if float(bid[1]) != 0:
-                if min(bidside) > bid[0]:
-                    bidside.remove(min(bidside))
-                    bidside.append((float(bid[0]), float(bid[1])))
+        found = False
+        for j in range(len(bidside)):
+            price = bidside[j][0]
+            vol = bidside[j][1]
+        if not(found):
+            if price == bid[0]:
+                if bid[1] == 0:
+                    del bidside[j]
+                else:
+                    del bidside[j]
+                    bidside.insert(j, bid)
+                found = True
+            elif price > bid[0]:
+                if bid[1] > 0:
+                    bidside.insert(j, bid)
+                found = True
+
+    #while len(bidside) > 20:
+        #bidside.remove(bidside[-1])
+
+
+# In[80]:
+
+askside = {373.1: 0.53671, 
+           373.23: 17.24,
+           373.27: 7.9555,
+           373.28: 1.3363,
+           373.29: 0.11771, 
+           373.5: 55.04631,
+           373.55: 10.6796,
+           373.56: 1.43616041, 
+           373.59: 0.26566839, 
+           373.6: 1.43882788,
+           373.61: 1.43841224,
+           373.65: 0.2630484, 
+           373.71: 1.69908455, 
+           373.73: 0.43790512, 
+           373.27: 7.9555, 
+           373.55: 10.6796, 
+           373.22: 1.3363, 373.49: 7.9934, 373.72: 10.6566, 373.28: 1.3363}
+
+asks = {373.27: 7.9929, 373.28: 0.0, 373.49: 0.0, 373.55: 10.6849, 373.72: 0.0}
+
+for ask in asks:
+    #print(asks.get(ask))
+    if ask in askside:
+        if asks.get(ask) == 0:
+            askside.pop(ask)
         else:
-            if float(bid[1]) != 0:
-                bidside.append((float(bid[0]), float(bid[1])))
-        
-print(list(askside))
-print(len(askside))
-print(list(bidside))
-print(len(bidside))
+            askside.pop(ask)
+            askside.update({ask: asks.get(ask)})
+    elif asks.get(ask) > 0:
+        askside.update({ask: asks.get(ask)})
+        if len(askside) > 20:
+            askside.pop(max(askside))
+
+            
+pair = (1,2)
+bidside = [(372.85,2.61805646),
+           (372.84,8.9237),
+           (372.67,8.0285),
+           (372.66,3.28509036),
+           (372.6,0.02326771),
+           (372.25,10.6798),
+           (372.24,6.493),
+           (372.2,2.0),
+           (371.96,6.692),
+           (371.74,0.04),
+           (371.73,7.265),
+           (371.7,0.02231636),
+           (371.49,6.928),
+           (371.4,0.02233438),
+           (371.28,7.441),
+           (371.1,0.02235244),
+           (371.04,6.84),
+           (370.9,0.262),
+           (370.88,2.16480323),
+           (370.86,45.75)
+]
+bidside = dict(bidside)
+print(bidside)
 
 
-# In[242]:
+# # Collect and transform order book states from CryptoIQ
 
-data.Bids = data['Bids'].map(float, re.split(',', re.sub('[^0-9,.]', '', b)))
-    
+# In[136]:
+
+URL = 'https://cryptoiq.io/api/marketdata/orderbooktop/bitstamp/btcusd/2016-%s'
+time = '04-24/22'
+
+data = pd.read_json(URL % time)
+
 data.head()
 
 
