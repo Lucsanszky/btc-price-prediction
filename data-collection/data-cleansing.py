@@ -260,14 +260,96 @@ print(bidside)
 
 # # Collect and transform order book states from CryptoIQ
 
-# In[136]:
+# In[4]:
 
 URL = 'https://cryptoiq.io/api/marketdata/orderbooktop/bitstamp/btcusd/2016-%s'
-time = '04-24/22'
 
-data = pd.read_json(URL % time)
+dates = pd.date_range(start = '1/1/2016', end = '5/1/2016', freq='H')
 
-data.head()
+lob_data = pd.DataFrame()
+
+for date in dates:
+    time = str(date.month) + '-' + str(date.day) + '/' + str(date.hour)
+    data = pd.read_json(URL % time)
+    lob_data = lob_data.append(data)
+
+#lob_data.to_csv(path_or_buf='../btc-data/BTC_LOB_collected.csv')
+
+
+# # Convert indices to datetime format (rows: 939612)
+
+# In[5]:
+
+lob_data.set_index('time', inplace=True)
+lob_data.index = pd.to_datetime(lob_data.index)
+
+
+# # Create indices for evenly spaced time series (10s)
+
+# In[16]:
+
+dates = pd.date_range(start = '1/1/2016 00:00:00', end = '5/1/2016 00:59:50', freq='10s')
+dates
+#lob_data.to_csv(path_or_buf='../btc-data/BTC_LOB_collected.csv')
+
+
+# In[7]:
+
+lob_data['asks'] = lob_data['asks'].map(dict)
+lob_data['bids'] = lob_data['bids'].map(dict)
+
+
+# # Re-index the LOB table with the evenly spaced time series, fill missing values with the nearest available prices (rows: 1045800) 
+
+# In[19]:
+
+lob_data = lob_data.reindex(dates, method = 'nearest')
+
+
+# In[20]:
+
+lob_data
+
+
+# In[21]:
+
+lob_data.to_csv(path_or_buf='../btc-data/BTC_LOB_collected.csv')
+
+
+# In[36]:
+
+lob_features = pd.DataFrame(index = dates)
+lob_features['ask volume'] = lob_data['asks'].map(lambda x: sum(x.values()))
+
+
+# In[39]:
+
+lob_features['bid volume'] = lob_data['bids'].map(lambda x: sum(x.values()))
+lob_features['ask price'] = lob_data['asks'].map(min)
+lob_features['bid price'] = lob_data['bids'].map(max)
+
+
+# In[45]:
+
+lob_features['bid-ask spread'] = lob_features['ask price'] - lob_features['bid price']
+lob_features['mid price'] = (lob_features['ask price'] + lob_features['bid price'])/2
+lob_features['ask price spread'] = lob_data['asks'].map(max) - lob_features['ask price']
+lob_features['bid price spread'] = lob_features['bid price'] - lob_data['bids'].map(min)
+lob_features['mean ask volume'] = lob_features['ask volume'] / 20
+lob_features['mean bid volume'] = lob_features['bid volume'] / 20
+lob_features['mean ask price'] = lob_data['asks'].map(sum) / 20
+lob_features['mean bid price'] = lob_data['bids'].map(sum) / 20
+
+
+# In[46]:
+
+lob_features.rename(columns = {'ask volume':'total ask volume', 'bid volume':'total bid volume'}, inplace = True)
+lob_features
+
+
+# In[47]:
+
+lob_features.to_csv(path_or_buf='../btc-data/BTC_LOB_features_10s.csv')
 
 
 # In[ ]:

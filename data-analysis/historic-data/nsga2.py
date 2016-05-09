@@ -43,8 +43,17 @@ date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
 def prep_data(date_from, date_to):
     del FRAMES[:]
     del FEATURES[:]
+
+    # Create DataFrame from the market-price
+    data = pd.read_csv(URL % CHARTS[0], parse_dates=[0], date_parser = date_parse)
+    data.columns = ['date', CHARTS[0]]
     
-    for chart in CHARTS:
+    df = pd.DataFrame(data)
+    df['date'] = df['date'].apply(lambda x: x.date())
+    df = df.drop_duplicates(['date']).set_index('date').reindex(pd.date_range(start = date_from, end = date_to))
+    FRAMES.append(df)
+
+    for chart in CHARTS[1:]:
         data = pd.read_csv(URL % chart, parse_dates=[0], date_parser = date_parse)
         data.columns = ['date', chart]
     
@@ -137,6 +146,6 @@ def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
         top_RMSE = hof[0]
 
     chromosome = hof[0]
-    selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS))))
+    selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS[1:]))))
     
     return best, selected_features, chromosome

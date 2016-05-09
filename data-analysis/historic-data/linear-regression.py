@@ -75,8 +75,9 @@
 # * http://www.sciencedirect.com/science/article/pii/0167865589900378
 # * http://sci2s.ugr.es/sites/default/files/files/Teaching/OtherPostGraduateCourses/MasterEstructuras/bibliografia/Deb_NSGAII.pdf
 # * http://cs229.stanford.edu/proj2014/Isaac%20Madan,%20Shaurya%20Saluja,%20Aojia%20Zhao,Automated%20Bitcoin%20Trading%20via%20Machine%20Learning%20Algorithms.pdf
+# * https://www.kaggle.com/c/the-winton-stock-market-challenge
 
-# In[1]:
+# In[2]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -87,7 +88,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[2]:
+# In[5]:
 
 from nsga2 import *
 from IPython.display import display
@@ -107,7 +108,7 @@ sns.set()
 
 # # Data pre-processing
 
-# In[3]:
+# In[9]:
 
 widgets.interact(prep_data, date_from = '1/4/2012', date_to = '4/13/2016')
 get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
@@ -115,7 +116,7 @@ get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
 
 # # Regression plots
 
-# In[103]:
+# In[191]:
 
 data = pd.concat(FRAMES, axis = 1)
 sns.set_context("notebook", font_scale=1.35)
@@ -130,7 +131,7 @@ sns.set()
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[104]:
+# In[10]:
 
 def feature_selection(gen_num, indiv_num):
     
@@ -173,11 +174,11 @@ widgets.interact(feature_selection,
 
 # # Visualizing the actual and predicted prices 
 
-# In[106]:
+# In[14]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
-cbs = map(lambda x: widgets.Checkbox(description = x, value = False), CHARTS)
+cbs = map(lambda x: widgets.Checkbox(description = x, value = False), CHARTS[1:])
 box.children=[i for i in cbs]
 display(box)
 
@@ -188,7 +189,7 @@ def evaluate(b):
     regr = linear_model.LinearRegression()
     
     # Populate the checkbox placeholder
-    for i in range(len(CHARTS)):
+    for i in range(len(CHARTS[1:])):
         selected.append(box.children[i].value)
 
     filtered_features = filter_features(selected)
@@ -220,15 +221,15 @@ def evaluate(b):
     print(btc_y_test.head())
     
     # Create a dataframe from the predicted values
-    btc_y_pred = pd.DataFrame(regr.predict(btc_X_test[1:]), columns = ['market-price'])
-    btc_y_pred.set_index(btc_X_test.index[1:],inplace = True)
+    btc_y_pred = pd.DataFrame(regr.predict(btc_X_test), columns = ['market-price'])
+    btc_y_pred.set_index(btc_y_test.index,inplace = True)
     
     # Calculate the RMSE and MAE metric scores
-    rmse_score = np.sqrt(mse(btc_y_test[:-1], btc_y_pred))
-    mae_score = mae(btc_y_test[:-1], btc_y_pred)
+    rmse_score = np.sqrt(mse(btc_y_test, btc_y_pred))
+    mae_score = mae(btc_y_test, btc_y_pred)
     
     # Calculate the classification accuracy
-    act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_test.values, btc_y_test.values[1:-1])))
+    act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_test.values, btc_y_test.values[1:])))
     pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_pred.values, btc_y_pred.values[1:])))
     act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
     accuracy = np.sum(act_pred_cmp) / len(act_ticks)
@@ -253,11 +254,11 @@ def evaluate(b):
     
     # Plot the time series of the actual and predicted values
     plt.figure(figsize = (20,10))
-    sns.tsplot(data = [btc_y_test.values[:-1], btc_y_pred.values])
+    sns.tsplot(data = [btc_y_test.values, btc_y_pred.values])
     
     plt.figure(figsize = (20,10))
     plt.plot(btc_y_test.index, btc_y_test, label = 'Actual Prices')
-    plt.plot(btc_X_test.index[1:], btc_y_pred, label = 'Predicted Prices')
+    plt.plot(btc_y_pred.index, btc_y_pred, label = 'Predicted Prices')
     plt.legend()
     
     print(btc_y_test.head())
@@ -267,7 +268,7 @@ button.on_click(evaluate)
 display(button)
 
 
-# In[101]:
+# In[189]:
 
 url = URL = 'https://blockchain.info/charts/market-price?timespan=all&format=csv'
 date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
@@ -279,33 +280,71 @@ data.columns = ['Date', 'Price']
 data.set_index('Date', inplace = True)
 data.index = pd.to_datetime(data.index)
 
-X_train = data['2012-01-04' : '2014-12-30']
-y_train = data['2012-01-05' : '2014-12-31']
-X_test = data['2014-12-30':'2016-05-07']
-y_test = data['2014-12-31':'2016-05-07']
+train_prices = pd.DataFrame(data['2012-01-04' : '2014-12-31'].values, index = data['2012-01-04' : '2014-12-31'].index)
+train_prices['Price 2'] = data['2012-01-05' : '2015-01-01'].values
+train_prices['Price 3'] = data['2012-01-06' : '2015-01-02'].values
+train_prices['Price 4'] = data['2012-01-07' : '2015-01-03'].values
+train_prices['Price 5'] = data['2012-01-08' : '2015-01-04'].values
+train_prices.rename(columns={0: 'Price 1'})
 
-print(X_train)
-print(y_train)
+X_train = train_prices
+
+y_train = data['2012-01-09' : '2015-01-05']
+
+test_prices = pd.DataFrame(data['2015-01-05':'2016-05-03'].values, index = data['2015-01-05':'2016-05-03'].index)
+test_prices['Price 2'] = data['2015-01-06':'2016-05-04'].values
+test_prices['Price 3'] = data['2015-01-07':'2016-05-05'].values
+test_prices['Price 4'] = data['2015-01-08':'2016-05-06'].values
+test_prices['Price 5'] = data['2015-01-09':'2016-05-07'].values
+test_prices.rename(columns={0: 'Price 1'})
+
+X_test = test_prices
+
+y_test = data['2015-01-10':'2016-05-08']
 
 regr.fit(X_train, y_train)
 
-y_pred = regr.predict(X_test[1:])
+y_pred = regr.predict(X_test)
 
-act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_test.values, y_test.values[1:-1])))
-pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_pred, y_pred[1:])))
+#print('wut: ', regr.predict(X_test)[0])
+#print('act: ', y_test.values[0])
+
+#print(y_pred)
+
+for i in range(len(y_test)):
+    print('Date: ', y_test.index[i])
+    print('Actual: ', y_test.values[i], 'Predicted: ', y_pred[i], '\n\n')
+
+act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_test.values, y_test.values[1:])))
+pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_pred, y_pred[1:-1])))
 act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
 accuracy = np.sum(act_pred_cmp) / len(act_ticks)
 
 print(accuracy)
 
-
 plt.figure(figsize = (20,10))
-plt.plot(y_test.index, y_test, label = 'Actual Prices')
-plt.plot(X_test.index[1:], y_pred, label = 'Predicted Prices')
+plt.plot(y_test.values, label = 'Actual Prices')
+plt.plot(y_pred, label = 'Predicted Prices')
 plt.legend()
 
 #print(y_test.tail())
-print(y_pred)
+#print('TOMORROW! ', regr.predict([[446.73], [447.28], [455.03], [458.16]]))
+
+
+# In[154]:
+
+#data.columns = ['Price1']
+prices = pd.DataFrame(data['2012-01-04' : '2014-12-31'].values, index = data['2012-01-04' : '2014-12-31'].index)
+prices['Price 2'] = data['2012-01-05' : '2015-01-01'].values
+prices['Price 3'] = data['2012-01-06' : '2015-01-02'].values
+prices['Price 4'] = data['2012-01-07' : '2015-01-03'].values
+prices['Price 5'] = data['2012-01-08' : '2015-01-04'].values
+prices.rename(columns={0: 'Prices 1'})
+
+
+# In[ ]:
+
+
 
 
 # In[ ]:
