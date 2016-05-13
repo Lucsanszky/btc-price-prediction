@@ -101,7 +101,7 @@ import seaborn as sns
 from sklearn import preprocessing as preproc, datasets, linear_model
 from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr, mean_absolute_error as mae
 
-#pd.set_option('html', False)
+pd.set_option('html', False)
 np.set_printoptions(threshold=np.nan)
 sns.set()
 
