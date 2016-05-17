@@ -77,7 +77,7 @@
 # * http://cs229.stanford.edu/proj2014/Isaac%20Madan,%20Shaurya%20Saluja,%20Aojia%20Zhao,Automated%20Bitcoin%20Trading%20via%20Machine%20Learning%20Algorithms.pdf
 # * https://www.kaggle.com/c/the-winton-stock-market-challenge
 
-# In[2]:
+# In[1]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -88,7 +88,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[5]:
+# In[2]:
 
 from nsga2 import *
 from IPython.display import display
@@ -101,14 +101,14 @@ import seaborn as sns
 from sklearn import preprocessing as preproc, datasets, linear_model
 from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr, mean_absolute_error as mae
 
-pd.set_option('html', False)
+#pd.set_option('html', False)
 np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
 # # Data pre-processing
 
-# In[9]:
+# In[4]:
 
 widgets.interact(prep_data, date_from = '1/4/2012', date_to = '4/13/2016')
 get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
@@ -131,7 +131,7 @@ sns.set()
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[10]:
+# In[5]:
 
 def feature_selection(gen_num, indiv_num):
     
@@ -174,7 +174,7 @@ widgets.interact(feature_selection,
 
 # # Visualizing the actual and predicted prices 
 
-# In[14]:
+# In[7]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
@@ -229,8 +229,8 @@ def evaluate(b):
     mae_score = mae(btc_y_test, btc_y_pred)
     
     # Calculate the classification accuracy
-    act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_test.values, btc_y_test.values[1:])))
-    pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(btc_y_pred.values, btc_y_pred.values[1:])))
+    act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(btc_y_test.values, btc_y_test.values[1:])))
+    pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(btc_y_pred.values, btc_y_pred.values[1:])))
     act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
     accuracy = np.sum(act_pred_cmp) / len(act_ticks)
     
@@ -268,7 +268,7 @@ button.on_click(evaluate)
 display(button)
 
 
-# In[189]:
+# In[8]:
 
 url = URL = 'https://blockchain.info/charts/market-price?timespan=all&format=csv'
 date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
@@ -315,8 +315,8 @@ for i in range(len(y_test)):
     print('Date: ', y_test.index[i])
     print('Actual: ', y_test.values[i], 'Predicted: ', y_pred[i], '\n\n')
 
-act_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_test.values, y_test.values[1:])))
-pred_ticks = list(map(lambda t: np.sign(t[1] - t[0]), zip(y_pred, y_pred[1:-1])))
+act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_test.values, y_test.values[1:])))
+pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_pred, y_pred[1:])))
 act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
 accuracy = np.sum(act_pred_cmp) / len(act_ticks)
 
