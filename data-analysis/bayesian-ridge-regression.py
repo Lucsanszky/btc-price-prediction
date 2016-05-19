@@ -8,7 +8,7 @@
 # * http://www.machinelearning.org/proceedings/icml2004/papers/354.pdf
 # * http://blog.applied.ai/bayesian-inference-with-pymc3-part-2/
 
-# In[1]:
+# In[ ]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -19,7 +19,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information matplotlib, numpy, pandas, pymc3, seaborn, sklearn, theano')
 
 
-# In[2]:
+# In[ ]:
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,13 +38,13 @@ np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
-# In[3]:
+# In[ ]:
 
 path = '../btc-data/BTC_LOB_features_10s.csv'
 data10s = pd.read_csv(path, index_col = 0, parse_dates = True)
 
 
-# In[4]:
+# In[ ]:
 
 data30s = data10s.reindex(pd.date_range(start = data10s.index[0], end = data10s.index[-1], freq='30s'))
 data1m = data10s.reindex(pd.date_range(start = data10s.index[0], end = data10s.index[-1], freq='60s'))
@@ -56,7 +56,7 @@ datas = [data10s, data30s, data1m, data5m, data10m]
 
 # # Data Preprocessing
 
-# In[5]:
+# In[ ]:
 
 def evaluate(data):
     
@@ -240,27 +240,27 @@ def evaluate(data):
     print('=========================================================\n\n')
 
 
-# In[6]:
+# In[ ]:
 
 evaluate(datas[0].copy())
 
 
-# In[7]:
+# In[ ]:
 
 evaluate(datas[1].copy())
 
 
-# In[8]:
+# In[ ]:
 
 evaluate(datas[2].copy())
 
 
-# In[9]:
+# In[ ]:
 
 evaluate(datas[3].copy())
 
 
-# In[10]:
+# In[ ]:
 
 evaluate(datas[4].copy())
 
