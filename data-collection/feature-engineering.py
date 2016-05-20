@@ -226,16 +226,25 @@ lob_features600.to_csv(path_or_buf='../btc-data/BTC_LOB_simple_600s.csv')
 
 # # Feature Engineering of Feature Set 2 - better technical indicators
 
-# In[210]:
+# In[233]:
 
 lob_techind10 = pd.DataFrame(lob_features10['mid price'].copy(), index = lob_features10.index)
+lob_techind10['B-ASPREAD'] = lob_features10['bid-ask spread'].copy()
+
 lob_techind30 = pd.DataFrame(lob_features30['mid price'].copy(), index = lob_features30.index)
+lob_techind30['B-ASPREAD'] = lob_features30['bid-ask spread'].copy()
+
 lob_techind60 = pd.DataFrame(lob_features60['mid price'].copy(), index = lob_features60.index)
+lob_techind60['B-ASPREAD'] = lob_features60['bid-ask spread'].copy()
+
 lob_techind300 = pd.DataFrame(lob_features300['mid price'].copy(), index = lob_features300.index)
+lob_techind300['B-ASPREAD'] = lob_features300['bid-ask spread'].copy()
+
 lob_techind600 = pd.DataFrame(lob_features600['mid price'].copy(), index = lob_features600.index)
+lob_techind600['B-ASPREAD'] = lob_features600['bid-ask spread'].copy()
 
 
-# In[211]:
+# In[234]:
 
 def generate_features(frame, freq):
     close = frame['mid price']
@@ -268,45 +277,48 @@ def generate_features(frame, freq):
     frame['RSI360'] = rsi(close, 360)
     frame['RSI180'] = rsi(close, 180)
     frame['RSI60'] = rsi(close, 60)
+    frame['DELTAP'] = close.diff()
     
     frame['mid price'] = frame['mid price'].shift(-1)
+    frame['B-ASPREAD'] = frame['B-ASPREAD'].shift(-1)
+    frame['DELTAP'] = frame['DELTAP'].shift(-1)
     frame.set_index(frame.index.shift(1, freq=freq), inplace = True)
     frame = frame[3*359:-1]
     
     return frame
 
 
-# In[212]:
+# In[235]:
 
 lob_techind10 = generate_features(lob_techind10, '10s')
 lob_techind10.fillna(lob_techind10.mean(), inplace = True)
 
 
-# In[213]:
+# In[236]:
 
 lob_techind30 = generate_features(lob_techind30, '30s')
 lob_techind30.fillna(lob_techind30.mean(), inplace = True)
 
 
-# In[214]:
+# In[237]:
 
 lob_techind60 = generate_features(lob_techind60, '60s')
 lob_techind60.fillna(lob_techind60.mean(), inplace = True)
 
 
-# In[215]:
+# In[238]:
 
 lob_techind300 = generate_features(lob_techind300, '300s')
 lob_techind300.fillna(lob_techind300.mean(), inplace = True)
 
 
-# In[216]:
+# In[239]:
 
 lob_techind600 = generate_features(lob_techind600, '600s')
 lob_techind600.fillna(lob_techind600.mean(), inplace = True)
 
 
-# In[217]:
+# In[240]:
 
 lob_techind10.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_10s.csv')
 lob_techind30.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_30s.csv')
