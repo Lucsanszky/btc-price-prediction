@@ -25,39 +25,71 @@ get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seabor
 get_ipython().magic('matplotlib inline')
 
 import ast
-from IPython.display import display
-from ipywidgets import widgets
-import json
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from collections import OrderedDict as od
-import random
-import re
-import seaborn as sns
 
-#pd.set_option('html', False)
 np.set_printoptions(threshold=np.nan)
-sns.set()
 
 
-# # Technical Indicators
+# # Technical Indicator Functions
 
 # In[185]:
 
 def stoch_K(close, window):
+    '''Calculates the fast stochastic oscillator %K.
+    
+    Input:
+    close  -- DataFrame to calculate on
+    window -- Size of the window
+    
+    Output: 
+    %K -- double
+    '''
+    
     low = close.rolling(window, center = False).min()
     high = close.rolling(window, center = False).max()
     
     return 100 * (close - low) / (high - low)
 
 def stoch_D(K, window):
+    '''Calculates the stochastic oscillator %D.
+    %D is the moving average of %K.
+    
+    Input:
+    close  -- DataFrame to calculate on
+    window -- Size of the window
+    
+    Output: 
+    %D -- double
+    '''
+    
     return K.rolling(window, center = False).mean()
 
 def slow_D(D, window):
+    '''Calculates the slow stochastic oscillator %D.
+    Slow %D is the moving average of %D.
+    
+    Input:
+    close  -- DataFrame to calculate on
+    window -- Size of the window
+    
+    Output: 
+    Slow %D -- double
+    '''
+    
     return D.rolling(window, center = False).mean()
 
 def momentum(close, window):
+    '''Calculates the momentum.
+    
+    Input:
+    close  -- DataFrame to calculate on
+    window -- Size of the window
+    
+    Output: 
+    Momentum -- double
+    '''
+    
     dif = lambda x: x[-1] - x[0]
     
     return close.rolling(window, center = False).apply(dif)
@@ -101,7 +133,7 @@ def rsi(close, window):
     return 100 - (100 / (1 + RS))
 
 
-# # Feature Engineering of Feature Set 1 - turned out to be meaningless
+# # Feature Engineering of Feature Set 1 - simple price and volume features
 
 # In[158]:
 
@@ -194,7 +226,7 @@ lob_features600.to_csv(path_or_buf='../btc-data/BTC_LOB_simple_600s.csv')
 
 # # Feature Engineering of Feature Set 2 - better technical indicators
 
-# In[189]:
+# In[210]:
 
 lob_techind10 = pd.DataFrame(lob_features10['mid price'].copy(), index = lob_features10.index)
 lob_techind30 = pd.DataFrame(lob_features30['mid price'].copy(), index = lob_features30.index)
@@ -203,7 +235,7 @@ lob_techind300 = pd.DataFrame(lob_features300['mid price'].copy(), index = lob_f
 lob_techind600 = pd.DataFrame(lob_features600['mid price'].copy(), index = lob_features600.index)
 
 
-# In[190]:
+# In[211]:
 
 def generate_features(frame, freq):
     close = frame['mid price']
@@ -244,37 +276,37 @@ def generate_features(frame, freq):
     return frame
 
 
-# In[191]:
+# In[212]:
 
 lob_techind10 = generate_features(lob_techind10, '10s')
-lob_techind10
+lob_techind10.fillna(lob_techind10.mean(), inplace = True)
 
 
-# In[192]:
+# In[213]:
 
 lob_techind30 = generate_features(lob_techind30, '30s')
-lob_techind30
+lob_techind30.fillna(lob_techind30.mean(), inplace = True)
 
 
-# In[193]:
+# In[214]:
 
 lob_techind60 = generate_features(lob_techind60, '60s')
-lob_techind60
+lob_techind60.fillna(lob_techind60.mean(), inplace = True)
 
 
-# In[194]:
+# In[215]:
 
 lob_techind300 = generate_features(lob_techind300, '300s')
-lob_techind300
+lob_techind300.fillna(lob_techind300.mean(), inplace = True)
 
 
-# In[195]:
+# In[216]:
 
 lob_techind600 = generate_features(lob_techind600, '600s')
-lob_techind600
+lob_techind600.fillna(lob_techind600.mean(), inplace = True)
 
 
-# In[196]:
+# In[217]:
 
 lob_techind10.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_10s.csv')
 lob_techind30.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_30s.csv')

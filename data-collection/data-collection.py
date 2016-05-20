@@ -40,71 +40,6 @@ np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
-# # Technical Indicators
-
-# In[62]:
-
-test = [1,2,3,4,5]
-
-for i in range(1, len(test) - 1):
-    print(test[:-i])
-
-
-# In[63]:
-
-def stoch_K(data):
-    return 100 * (data[-1] - np.min(data)) / (np.max(data) - np.min(data))
-
-def stoch_D(data):
-    K = stoch_K(data)
-    
-    for i in range(len(data)):
-        if i < len(data) - 1:
-            K += stoch_K(data)
-    
-    return K / len(data)
-
-def slow_D(data):
-    D = stoch_D(data)
-    
-    for i in range(len(data)):
-        if i < len(data) - 1:
-            D += stoch_D(data)
-    
-    return D / len(data)
-
-def momentum(data):
-    return data[-1] - data[0]
-
-def roc(data):
-    return 100 * data[-1] / data[0]
-
-def lw_R(data):
-    return 100 * (np.max(data) - data[-1]) / (np.max(data) - np.min(data))
-    
-def ad_osc(data):
-    return (np.max(data) - data[-2]) / (np.max(data) - np.min(data))
-
-def disp(data):
-    MA = pd.rolling_mean(data, window = len(data), min_periods = 1)
-    
-    return 100 * data[-1] / MA
-
-def oscp(data1, data2):
-    MA1 = pd.rolling_mean(data1, window = len(data1), min_periods = 1)
-    MA2 = pd.rolling_mean(data2, window = len(data2), min_periods = 1)
-    
-    return (MA1 - MA2) / MA1
-
-def rsi(data):
-    rev = data.reverse()
-    up = list(map(lambda t: t[0] - t[1] if t[0] > t[1] else 0, rev))
-    down = list(map(lambda t: t[1] - t[0] if t[0] < t[1] else 0, rev))
-    RS = np.mean(up) / np.mean(down)
-    
-    return 100 - (100 / (1 + RS))
-
-
 # # Transform collected trade data into proper format and export it
 
 # In[137]:
@@ -362,7 +297,6 @@ lob_data.index = pd.to_datetime(lob_data.index)
 # In[16]:
 
 dates = pd.date_range(start = '1/1/2016 00:00:00', end = '5/1/2016 00:59:50', freq='10s')
-dates
 #lob_data.to_csv(path_or_buf='../btc-data/BTC_LOB_collected.csv')
 
 
@@ -384,52 +318,7 @@ lob_data = lob_data.reindex(dates, method = 'nearest')
 lob_data
 
 
-# # Feature Engineering of feature set 1 - turned out to be meaningless
-
 # In[21]:
 
 lob_data.to_csv(path_or_buf='../btc-data/BTC_LOB_collected.csv')
-
-
-# In[36]:
-
-lob_features = pd.DataFrame(index = dates)
-lob_features['ask volume'] = lob_data['asks'].map(lambda x: sum(x.values()))
-
-
-# In[39]:
-
-lob_features['bid volume'] = lob_data['bids'].map(lambda x: sum(x.values()))
-lob_features['ask price'] = lob_data['asks'].map(min)
-lob_features['bid price'] = lob_data['bids'].map(max)
-
-
-# In[45]:
-
-lob_features['bid-ask spread'] = lob_features['ask price'] - lob_features['bid price']
-lob_features['mid price'] = (lob_features['ask price'] + lob_features['bid price'])/2
-lob_features['ask price spread'] = lob_data['asks'].map(max) - lob_features['ask price']
-lob_features['bid price spread'] = lob_features['bid price'] - lob_data['bids'].map(min)
-lob_features['mean ask volume'] = lob_features['ask volume'] / 20
-lob_features['mean bid volume'] = lob_features['bid volume'] / 20
-lob_features['mean ask price'] = lob_data['asks'].map(sum) / 20
-lob_features['mean bid price'] = lob_data['bids'].map(sum) / 20
-
-
-# In[46]:
-
-lob_features.rename(columns = {'ask volume':'total ask volume', 'bid volume':'total bid volume'}, inplace = True)
-lob_features
-
-
-# In[47]:
-
-lob_features.to_csv(path_or_buf='../btc-data/BTC_LOB_features_10s.csv')
-
-
-# # Feature Engineering of feature set 1 - better technical indicators
-
-# In[ ]:
-
-
 
