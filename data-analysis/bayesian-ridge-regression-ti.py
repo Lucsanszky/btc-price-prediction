@@ -37,6 +37,16 @@ np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
+# In[68]:
+
+def directional_symmetry(act, pred):
+    act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else 0, zip(act.values, act.values[1:])))
+    pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else 0, zip(pred, pred[1:])))
+    d = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
+    
+    return np.sum(d) / len(act_ticks)
+
+
 # In[3]:
 
 path = '../btc-data/BTC_LOB_techind_10s.csv'
@@ -59,7 +69,7 @@ datas = [data10s, data30s, data1m, data5m, data10m]
 
 # # Data Preprocessing
 
-# In[59]:
+# In[69]:
 
 def evaluate(data):
     
@@ -124,11 +134,7 @@ def evaluate(data):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_test.values, y_test.values[1:])))
-    pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(pred, pred[1:])))
-    act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
-    accuracy = np.sum(act_pred_cmp) / len(act_ticks)
-    print('Directional Symmetry: ', accuracy, '\n')
+    print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
     print('==============================================\n\n')
     print(selected, '\n\n')
     
@@ -174,35 +180,31 @@ def evaluate(data):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_test.values, y_test.values[1:])))
-    pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(pred, pred[1:])))
-    act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
-    accuracy = np.sum(act_pred_cmp) / len(act_ticks)
-    print('Directional Symmetry: ', accuracy, '\n')
+    print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
     print('==============================================\n\n')
 
 
-# In[60]:
+# In[70]:
 
 evaluate(datas[0].copy())
 
 
-# In[61]:
+# In[71]:
 
 evaluate(datas[1].copy())
 
 
-# In[62]:
+# In[72]:
 
 evaluate(datas[2].copy())
 
 
-# In[63]:
+# In[73]:
 
 evaluate(datas[3].copy())
 
 
-# In[64]:
+# In[74]:
 
 evaluate(datas[4].copy())
 
