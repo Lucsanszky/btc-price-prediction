@@ -8,8 +8,9 @@
 # * Technical Analysis of Stock Trends, Robert D. Edwards and John Magee
 # * https://www.jbs.cam.ac.uk/fileadmin/user_upload/research/workingpapers/wp0030.pdf
 # * http://www.sciencedirect.com/science/article/pii/0261560692900483
+# * https://www.quantopian.com/posts/technical-analysis-indicators-without-talib-code
 
-# In[1]:
+# In[250]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -17,7 +18,7 @@ get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
 
 get_ipython().magic('load_ext version_information')
-get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
+get_ipython().magic('version_information numpy, pandas')
 
 
 # In[48]:
@@ -33,7 +34,7 @@ np.set_printoptions(threshold=np.nan)
 
 # # Technical Indicator Functions
 
-# In[185]:
+# In[241]:
 
 def stoch_K(close, window):
     '''Calculates the fast stochastic oscillator %K.
@@ -132,6 +133,16 @@ def rsi(close, window):
     
     return 100 - (100 / (1 + RS))
 
+def cci(close, window):
+    low = close.rolling(window, center = False).min()
+    high = close.rolling(window, center = False).max()
+    
+    MT = (close + low + high) / 3
+    SMT = MT.rolling(window, center = False).mean()
+    DT = MT.rolling(window, center = False).std()
+    
+    return (MT - SMT) / DT
+
 
 # # Feature Engineering of Feature Set 1 - simple price and volume features
 
@@ -226,7 +237,7 @@ lob_features600.to_csv(path_or_buf='../btc-data/BTC_LOB_simple_600s.csv')
 
 # # Feature Engineering of Feature Set 2 - better technical indicators
 
-# In[233]:
+# In[274]:
 
 lob_techind10 = pd.DataFrame(lob_features10['mid price'].copy(), index = lob_features10.index)
 lob_techind10['B-ASPREAD'] = lob_features10['bid-ask spread'].copy()
@@ -244,7 +255,7 @@ lob_techind600 = pd.DataFrame(lob_features600['mid price'].copy(), index = lob_f
 lob_techind600['B-ASPREAD'] = lob_features600['bid-ask spread'].copy()
 
 
-# In[234]:
+# In[275]:
 
 def generate_features(frame, freq):
     close = frame['mid price']
@@ -277,6 +288,9 @@ def generate_features(frame, freq):
     frame['RSI360'] = rsi(close, 360)
     frame['RSI180'] = rsi(close, 180)
     frame['RSI60'] = rsi(close, 60)
+    frame['CCI360'] = cci(close, 360)
+    frame['CCI180'] = cci(close, 180)
+    frame['CCI60'] = cci(close, 60)
     frame['DELTAP'] = close.diff()
     
     frame['mid price'] = frame['mid price'].shift(-1)
@@ -288,37 +302,42 @@ def generate_features(frame, freq):
     return frame
 
 
-# In[235]:
+# In[276]:
 
 lob_techind10 = generate_features(lob_techind10, '10s')
-lob_techind10.fillna(lob_techind10.mean(), inplace = True)
+lob_techind10.replace([np.inf, -np.inf], np.nan, inplace = True)
+lob_techind10.fillna(method='ffill', inplace = True)
 
 
-# In[236]:
+# In[277]:
 
 lob_techind30 = generate_features(lob_techind30, '30s')
-lob_techind30.fillna(lob_techind30.mean(), inplace = True)
+lob_techind30.replace([np.inf, -np.inf], np.nan, inplace = True)
+lob_techind30.fillna(method='ffill', inplace = True)
 
 
-# In[237]:
+# In[278]:
 
 lob_techind60 = generate_features(lob_techind60, '60s')
-lob_techind60.fillna(lob_techind60.mean(), inplace = True)
+lob_techind60.replace([np.inf, -np.inf], np.nan, inplace = True)
+lob_techind60.fillna(method='ffill', inplace = True)
 
 
-# In[238]:
+# In[279]:
 
 lob_techind300 = generate_features(lob_techind300, '300s')
-lob_techind300.fillna(lob_techind300.mean(), inplace = True)
+lob_techind300.replace([np.inf, -np.inf], np.nan, inplace = True)
+lob_techind300.fillna(method='ffill', inplace = True)
 
 
-# In[239]:
+# In[280]:
 
 lob_techind600 = generate_features(lob_techind600, '600s')
-lob_techind600.fillna(lob_techind600.mean(), inplace = True)
+lob_techind600.replace([np.inf, -np.inf], np.nan, inplace = True)
+lob_techind600.fillna(method='ffill', inplace = True)
 
 
-# In[240]:
+# In[281]:
 
 lob_techind10.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_10s.csv')
 lob_techind30.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_30s.csv')
