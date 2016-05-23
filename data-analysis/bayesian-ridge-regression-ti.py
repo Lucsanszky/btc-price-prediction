@@ -37,11 +37,11 @@ np.set_printoptions(threshold=np.nan)
 sns.set()
 
 
-# In[68]:
+# In[83]:
 
 def directional_symmetry(act, pred):
-    act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else 0, zip(act.values, act.values[1:])))
-    pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else 0, zip(pred, pred[1:])))
+    act_ticks = list(map(lambda x: 1 if x >= 0 else 0, act.values))
+    pred_ticks = list(map(lambda x: 1 if x >= 0 else 0, pred))
     d = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
     
     return np.sum(d) / len(act_ticks)
@@ -69,17 +69,14 @@ datas = [data10s, data30s, data1m, data5m, data10m]
 
 # # Data Preprocessing
 
-# In[69]:
+# In[96]:
 
 def evaluate(data):
     
     X, y = data, data['DELTAP'].copy()
-
-    for df in X.columns.tolist():
-        X[df] = preproc.StandardScaler().fit(X[df].reshape(-1,1)).transform(X[df].reshape(-1,1))
         
     train_dates = X.index[:int(0.7*len(X))]
-    test_dates = X.index[int(0.7*len(X)):int(0.85*len(X))]
+    test_dates = X.index[int(0.7*len(X)):]
 
     print('First training date: ', train_dates[0])
     print('Last training date: ', train_dates[-1])
@@ -90,6 +87,15 @@ def evaluate(data):
 
     X_train = X[train_dates[0]:train_dates[-1]].drop(['mid price', 'DELTAP'], axis = 1)
     y_train = y[train_dates[0]:train_dates[-1]]
+    
+    X_test = X[test_dates[0]:test_dates[-1]].drop(['mid price', 'DELTAP'], axis = 1)
+    y_test = y[test_dates[0]:test_dates[-1]]
+    
+    scaler = preproc.StandardScaler()
+    for df in X_train.columns.tolist():
+        scaler.fit(X_train[df].reshape(-1,1))
+        X_train[df] = scaler.transform(X_train[df].reshape(-1,1))
+        X_test[df] = scaler.transform(X_test[df].reshape(-1,1))
 
     clf = BayesianRidge(compute_score=True)
     clf.fit(X_train, y_train)
@@ -103,9 +109,6 @@ def evaluate(data):
     selected = list(map(lambda t: t[0],
                        (filter(lambda t: np.abs(t[1]) > 0.005, 
                        zip(X_train.columns, clf.coef_)))))
-
-    X_test = X[test_dates[0]:test_dates[-1]].drop(['mid price', 'DELTAP'], axis = 1)
-    y_test = y[test_dates[0]:test_dates[-1]]
 
     pred = clf.predict(X_test)
     pd.DataFrame(pred, index = test_dates)
@@ -123,8 +126,8 @@ def evaluate(data):
     plt.xlim('2016-04-08 00', '2016-04-10 00')
     plt.legend()
     
-    print('\n\nResults of prediction with previous 360 prices')
-    print('==============================================\n')
+    print('\n\nResults of prediction with all the technical indicators')
+    print('===========================================================\n')
     R2_test = clf.score(X_test, y_test)
     R2_train = clf.score(X_train, y_train)
     print('Training set R2: ', R2_train, ', Test set R2: ', R2_test)
@@ -135,7 +138,7 @@ def evaluate(data):
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
     print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
-    print('==============================================\n\n')
+    print('===========================================================\n\n')
     print(selected, '\n\n')
     
     X_train = X[selected][train_dates[0]:train_dates[-1]]
@@ -169,8 +172,8 @@ def evaluate(data):
     plt.xlim('2016-04-08 00', '2016-04-10 00')
     plt.legend()
     
-    print('\n\nResults of prediction with previous 360 prices')
-    print('==============================================\n')
+    print('\n\nResults of prediction with selected technical indicators')
+    print('============================================================\n')
     R2_test = clf.score(X_test, y_test)
     R2_train = clf.score(X_train, y_train)
     print('Training set R2: ', R2_train, ', Test set R2: ', R2_test)
@@ -181,30 +184,30 @@ def evaluate(data):
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
     print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
-    print('==============================================\n\n')
+    print('============================================================\n\n')
 
 
-# In[70]:
+# In[97]:
 
 evaluate(datas[0].copy())
 
 
-# In[71]:
+# In[98]:
 
 evaluate(datas[1].copy())
 
 
-# In[72]:
+# In[99]:
 
 evaluate(datas[2].copy())
 
 
-# In[73]:
+# In[100]:
 
 evaluate(datas[3].copy())
 
 
-# In[74]:
+# In[101]:
 
 evaluate(datas[4].copy())
 
