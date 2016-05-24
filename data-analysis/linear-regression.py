@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# # Historic Bitcoin Price Data Prediction
+# # Daily Price Prediction with Network Features
 # 
 # Extensive research was carried out on historic Bitcoin price prediction via Multiple Linear Regression. Originally, MLR was used as a "reference model" to develop a framework/pipeline, where one can easily switch between different ML models and metrics to perform Bitcoin network feature selection with the Nondominated Sorting Genetic Algorithm II. Initially, the results were surprisingly good and thus further analysis was conducted. However, it turned out that the remarkable results were based on bad assumptions. 
 # 
@@ -90,7 +90,7 @@ get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seabor
 
 # In[2]:
 
-from nsga2 import *
+from deap import base, creator, tools, algorithms
 from IPython.display import display
 from ipywidgets import widgets
 import matplotlib.pyplot as plt
@@ -101,9 +101,75 @@ import seaborn as sns
 from sklearn import preprocessing as preproc, datasets, linear_model
 from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr, mean_absolute_error as mae
 
-#pd.set_option('html', False)
 np.set_printoptions(threshold=np.nan)
 sns.set()
+toolb = base.Toolbox()
+
+
+# In[3]:
+
+# Note: chart names could occasionally change on blockchain.info
+URL = 'https://blockchain.info/charts/%s?timespan=all&format=csv'
+CHARTS = ['market-price',
+          'miners-revenue',
+          'cost-per-transaction',
+          'transaction-fees-usd',
+          'network-deficit', 
+          'n-transactions', 
+          'n-transactions-excluding-popular',
+          'n-transactions-excluding-chains-longer-than-10',
+          'n-transactions-excluding-chains-longer-than-100',
+          'n-transactions-excluding-chains-longer-than-1000',
+          'n-transactions-excluding-chains-longer-than-10000',
+          'n-unique-addresses', 
+          'n-transactions-per-block',
+          'n-orphaned-blocks',
+          'output-volume',
+          'estimated-transaction-volume-usd',
+          'trade-volume',
+          'tx-trade-ratio',
+          'hash-rate',
+          'difficulty',
+          'median-confirmation-time',
+          'bitcoin-days-destroyed',
+          'avg-block-size'
+         ]
+
+FRAMES = []   # contains everything as DataFrames from charts
+FEATURES = [] # standardized DataFrames from charts, excluding market-price
+
+date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
+
+def prep_data(date_from, date_to):
+    del FRAMES[:]
+    del FEATURES[:]
+
+    # Create DataFrame from the market-price
+    data = pd.read_csv(URL % CHARTS[0], parse_dates=[0], date_parser = date_parse)
+    data.columns = ['date', CHARTS[0]]
+    
+    df = pd.DataFrame(data)
+    df['date'] = df['date'].apply(lambda x: x.date())
+    df = df.drop_duplicates(['date']).set_index('date').reindex(pd.date_range(start = date_from, end = date_to))
+    FRAMES.append(df)
+
+    for chart in CHARTS[1:]:
+        data = pd.read_csv(URL % chart, parse_dates=[0], date_parser = date_parse)
+        data.columns = ['date', chart]
+    
+        df = pd.DataFrame(data)
+        df['date'] = df['date'].apply(lambda x: x.date())
+        df = df.drop_duplicates(['date']).set_index('date').reindex(pd.date_range(start = date_from, end = date_to))
+        FRAMES.append(df)
+
+        # Standardize the values inside the DataFrame
+        data_np = df.as_matrix()
+        scaler = preproc.StandardScaler().fit(data_np[:int(0.7*len(data_np))])
+        data_np_standard = scaler.transform(data_np)
+
+        # Create a new DataFrame from the standardized values
+        df_standard = pd.DataFrame(data=data_np_standard, index=df.index, columns=df.columns)
+        FEATURES.append(df_standard)
 
 
 # # Data pre-processing
@@ -116,7 +182,7 @@ get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
 
 # # Regression plots
 
-# In[191]:
+# In[6]:
 
 data = pd.concat(FRAMES, axis = 1)
 sns.set_context("notebook", font_scale=1.35)
@@ -129,9 +195,94 @@ sns.pairplot(data, x_vars = CHARTS[20:], y_vars = CHARTS[0], size = 7, kind = 'r
 sns.set()
 
 
+# In[7]:
+
+def filter_features(mask):
+    return list(map(lambda t: t[1], filter(lambda t: t[0], zip(mask, FEATURES))))
+
+def fitness_fun(model):
+    method, metric, indiv = model
+
+    # Sometimes the genetic algorithm produces an all-zero chromosome,
+    # which would brake the code. 
+    if(sum(indiv) == 0):
+        indiv[0] = 1
+    
+    filtered_features = filter_features(indiv)
+    size = len(filtered_features)
+    filtered_features = pd.concat(filtered_features, axis = 1)
+    
+    # 70% of the data will be used for training,
+    # 15% will be used for validation and testing.
+    
+    train_dates = filtered_features.index[:int(0.7*len(filtered_features))]
+    
+    # Input: Network features from the previous day.
+    btc_X_train = filtered_features[train_dates[0] : train_dates[-2]]
+    # Output: The price on the current day.
+    btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[1] : train_dates[-1]]
+
+    valid_dates = filtered_features.index[int(0.7*len(filtered_features)) : int(0.85*len(filtered_features))]
+    
+    # Input: Network features from the previous day.
+    btc_X_valid = filtered_features[valid_dates[0] : valid_dates[-2]]
+    # Output: The price on the current day.
+    btc_y_valid = pd.DataFrame(FRAMES[0])[valid_dates[1] : valid_dates[-1]]
+
+    # Train the learner on the training data
+    # and evaluate the performance by the test data
+
+    method.fit(btc_X_train, btc_y_train)
+    
+    score = metric(btc_X_valid, btc_y_valid)
+    
+    return score, size
+
+def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
+    creator.create("FitnessMulti", base.Fitness, weights = objective)
+    creator.create("Individual", list, fitness=creator.FitnessMulti) 
+    toolb.register('bit', random.randint, 0, 1)
+    toolb.register('individual', tools.initRepeat, creator.Individual, toolb.bit, n = len(FEATURES))
+    toolb.register('population', tools.initRepeat, list, toolb.individual, n = indiv_num)
+    toolb.register('evaluate', fitness_fun)
+    toolb.register('mate', tools.cxUniform, indpb = 0.1)
+    toolb.register('mutate', tools.mutFlipBit, indpb = 0.05)
+    toolb.register('select', tools.selNSGA2)
+
+    population = toolb.population()
+    fits = map (toolb.evaluate, map(lambda x: (method, metric, x), population))
+
+    hof = tools.HallOfFame(1)
+
+    for fit, ind in zip(fits, population):
+        ind.fitness.values = fit
+
+    best = np.ndarray((gen_num, 1))
+    top_RMSE = []
+
+    for gen in range(gen_num):
+        offspring = algorithms.varOr(population, toolb, lambda_ = indiv_num, cxpb = 0.5, mutpb = 0.1)
+        hof.update(offspring)
+
+        fits = map (toolb.evaluate, map(lambda x: (method, metric, x), offspring))
+
+        for fit, ind in zip(fits, offspring):
+            ind.fitness.values = fit
+
+        population = toolb.select(offspring + population, k = indiv_num)
+
+        best[gen] = hof[0].fitness.values[0]
+        top_RMSE = hof[0]
+
+    chromosome = hof[0]
+    selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS[1:]))))
+    
+    return best, selected_features, chromosome
+
+
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[5]:
+# In[8]:
 
 def feature_selection(gen_num, indiv_num):
     
@@ -174,7 +325,7 @@ widgets.interact(feature_selection,
 
 # # Visualizing the actual and predicted prices 
 
-# In[7]:
+# In[9]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
@@ -202,8 +353,8 @@ def evaluate(b):
     btc_X_train = filtered_features[train_dates[0] : train_dates[-2]]
     btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[1] : train_dates[-1]]
     
-    print(btc_X_train.tail())
-    print(btc_y_train.head())
+    #print(btc_X_train.tail())
+    #print(btc_y_train.head())
 
     # Train the learner on the training data
     # and evaluate the performance by the test data
@@ -217,8 +368,8 @@ def evaluate(b):
     btc_X_test = filtered_features[test_dates[0] : test_dates[-2]]
     btc_y_test = pd.DataFrame(FRAMES[0])[test_dates[1] : test_dates[-1]]
     
-    print(btc_X_test.head())
-    print(btc_y_test.head())
+    #print(btc_X_test.head())
+    #print(btc_y_test.head())
     
     # Create a dataframe from the predicted values
     btc_y_pred = pd.DataFrame(regr.predict(btc_X_test), columns = ['market-price'])
@@ -243,8 +394,8 @@ def evaluate(b):
     # Create a dataframe for residual plots
     resid_df = pd.concat([btc_X_test, btc_y_pred], axis = 1)
     #resid_df.rename(columns = {'market-price': 'residuals'}, inplace=True)
-    print(btc_X_test.shape)
-    print(btc_y_pred.shape)
+    #print(btc_X_test.shape)
+    #print(btc_y_pred.shape)
     
     # Plot the residuals
     sns.set_context("notebook", font_scale=2.5)
@@ -261,8 +412,8 @@ def evaluate(b):
     plt.plot(btc_y_pred.index, btc_y_pred, label = 'Predicted Prices')
     plt.legend()
     
-    print(btc_y_test.head())
-    print(btc_y_pred.head())
+    #print(btc_y_test.head())
+    #print(btc_y_pred.head())
     
 button.on_click(evaluate)
 display(button)

@@ -61,7 +61,7 @@ data10m = pd.read_csv(path, index_col = 0, parse_dates = True)
 datas = [data10s, data30s, data1m, data5m, data10m]
 
 
-# In[4]:
+# In[5]:
 
 def directional_symmetry(act, pred):
     act_ticks = list(map(lambda x: 1 if x >= 0 else 0, act.values))
@@ -71,7 +71,7 @@ def directional_symmetry(act, pred):
     return np.sum(d) / len(act_ticks)
 
 
-# In[11]:
+# In[5]:
 
 #def filter_features(mask):
 #    return list(map(lambda t: t[1], filter(lambda t: t[0], zip(mask, FEATURES))))
@@ -96,9 +96,6 @@ def fitness_fun(model):
     method.eta0 = indiv[1]
     
     method.fit(X_train, y_train)
-    
-    X_valid25 = X_valid[:int(0.2*len(X_valid))]
-    y_valid25 = y_valid[:int(0.2*len(y_valid))]
     
     pred = method.predict(X_valid)
     rmse = np.sqrt(mse(y_valid, pred))
@@ -151,7 +148,7 @@ def nsga2_feat_sel(method, gen_num, indiv_num, dataset):
     return best, method, chromosome
 
 
-# In[12]:
+# In[6]:
 
 def feature_selection(gen_num, indiv_num, model, dataset):
     results = nsga2_feat_sel(model, gen_num, indiv_num, dataset)
@@ -173,7 +170,7 @@ def feature_selection(gen_num, indiv_num, model, dataset):
     return best_model, chromosome
 
 
-# In[21]:
+# In[7]:
 
 def evaluate(data, features):
     X, y = data[features], data['DELTAP'].copy()
@@ -229,8 +226,13 @@ def evaluate(data, features):
         best_model.partial_fit(x.reshape(1,-1), y.ravel(1,))
     
     #pred = best_model.predict(X_test)
+    
+    dr = DummyRegressor(strategy='mean')
+    dr.fit(X_train, y_train)
+    pred_base = dr.predict(X_test)
+    rmse_base = np.sqrt(mse(y_test, pred_base))
 
-    print('\n\nResults of prediction with previous 360 prices')
+    print('\n\nResults')
     print('==============================================\n')
     R2_test = best_model.score(X_test, y_test)
     R2_train = best_model.score(X_train, y_train)
@@ -241,8 +243,10 @@ def evaluate(data, features):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, best_model.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    print('Training hit rate: ',directional_symmetry(y_test, best_model.predict(X_train)),
+    print('Training hit rate: ',directional_symmetry(y_train, best_model.predict(X_train)),
           'Test hit rate: ', directional_symmetry(y_test, pred), '\n')
+    print('Baseline hit rate: ', directional_symmetry(y_test, pred_base))
+    print('Baseline RMSE: ', rmse_base)
     print('==============================================\n\n')
 
     plt.figure(figsize = (20,10))
@@ -251,9 +255,16 @@ def evaluate(data, features):
     #plt.xlim('2016-04-24 17', '2016-04-24 20')
     #plt.ylim(-0.1,0.1)
     plt.legend()
+    
+    plt.figure(figsize = (20,10))
+    plt.plot(y_test.index, y_test, label = 'Actual Prices')
+    plt.plot(y_test.index, pred, label = 'Predicted Prices')
+    plt.xlim('2016-04-24 17', '2016-04-24 20')
+    plt.ylim(-1,1)
+    plt.legend()
 
 
-# In[27]:
+# In[8]:
 
 features = ['B-ASPREAD', 'K360', 'K180',
             'MOM60', 'ROC60', 'LWR360',
@@ -264,7 +275,7 @@ features = ['B-ASPREAD', 'K360', 'K180',
 evaluate(datas[0].copy(), features)
 
 
-# In[28]:
+# In[9]:
 
 features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'MOM60', 'ROC60',
             'LWR360', 'LWR180', 'LWR60', 'ADOSC360', 'ADOSC180',
@@ -273,7 +284,7 @@ features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'MOM60', 'ROC60',
 evaluate(datas[1].copy(), features)
 
 
-# In[29]:
+# In[10]:
 
 features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'MOM180', 'MOM60', 'ROC360',
             'ROC60', 'LWR360', 'LWR180', 'LWR60', 'ADOSC360',
@@ -282,7 +293,7 @@ features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'MOM180', 'MOM60', 'ROC360',
 evaluate(datas[2].copy(), features)
 
 
-# In[30]:
+# In[11]:
 
 features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'D360', 'D180', 'sD360',
             'sD180', 'sD60', 'MOM180', 'MOM60', 'ROC360', 'LWR360',
@@ -292,7 +303,7 @@ features = ['B-ASPREAD', 'K360', 'K180', 'K60', 'D360', 'D180', 'sD360',
 evaluate(datas[3].copy(), features)
 
 
-# In[31]:
+# In[12]:
 
 features = ['B-ASPREAD', 'K360', 'K180', 'K60',
             'D180', 'D60', 'sD360', 'sD180', 'MOM360',
@@ -304,25 +315,41 @@ features = ['B-ASPREAD', 'K360', 'K180', 'K60',
 evaluate(datas[4].copy(), features)
 
 
-# In[ ]:
+# In[6]:
 
-clf = linear_model.SGDRegressor(loss='epsilon_insensitive', penalty='l2',
-                                epsilon=0, shuffle = True,
-                                eta0=0.002, power_t = 0.0759965388605597)
+features = ['B-ASPREAD', 'K360', 'K180', 'K60',
+            'D180', 'D60', 'sD360', 'sD180', 'MOM360',
+            'MOM180', 'ROC360', 'ROC180', 'ROC60', 'LWR360',
+            'LWR180', 'LWR60', 'ADOSC360', 'ADOSC180', 'ADOSC60',
+            'DISP360', 'DISP180', 'DISP60', 'OSCP180-360', 'OSCP60-180',
+            'RSI360', 'RSI60', 'CCI180', 'CCI60']
+
+X, y = data10m[features].copy(), data10m['DELTAP'].copy()
+
+train_dates = X.index[int(0.3*len(X)):int(0.7*len(X))]
+test_dates = X.index[int(0.7*len(X)):]
+
+X_train = X[train_dates[0]:train_dates[-1]]
+y_train = y[train_dates[0]:train_dates[-1]]
+    
+X_test = X[test_dates[0]:test_dates[-1]]
+y_test = y[test_dates[0]:test_dates[-1]]
+
+scaler = preproc.StandardScaler()
+for df in X_train.columns.tolist():
+    scaler.fit(X_train[df].reshape(-1,1))
+    X_train[df] = scaler.transform(X_train[df].reshape(-1,1))
+    X_test[df] = scaler.transform(X_test[df].reshape(-1,1))
+
+clf = svm.SVR(C = len(X_train)/0.005206759679379129, epsilon=0, cache_size=10000, max_iter = 10000)
 clf.fit(X_train, y_train)
 
+pred = clf.predict(X_test)
+
+print(directional_symmetry(y_test, pred))
+
 
 # In[ ]:
 
-dr = DummyRegressor(strategy='mean')
-dr.fit(X_train, y_train)
 
-pred = dr.predict(X_test)
-print(directional_symmetry(y_test, pred))
-
-rmse_test = np.sqrt(mse(y_test, pred))
-rmse_train = np.sqrt(mse(y_train, clf.predict(X_train)))
-
-print(rmse_test)
-print(rmse_train)
 
