@@ -10,7 +10,7 @@
 # * http://www.sciencedirect.com/science/article/pii/0261560692900483
 # * https://www.quantopian.com/posts/technical-analysis-indicators-without-talib-code
 
-# In[250]:
+# In[3]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -21,7 +21,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information numpy, pandas')
 
 
-# In[48]:
+# In[4]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -34,7 +34,7 @@ np.set_printoptions(threshold=np.nan)
 
 # # Technical Indicator Functions
 
-# In[241]:
+# In[5]:
 
 def stoch_K(close, window):
     '''Calculates the fast stochastic oscillator %K.
@@ -144,7 +144,7 @@ def cci(close, window):
     return (MT - SMT) / DT
 
 
-# # Feature Engineering of Feature Set 1 - simple price and volume features
+# # Feature Engineering of LOB Feature Set 1 - simple price and volume features
 
 # In[158]:
 
@@ -235,7 +235,12 @@ lob_features300.to_csv(path_or_buf='../btc-data/BTC_LOB_simple_300s.csv')
 lob_features600.to_csv(path_or_buf='../btc-data/BTC_LOB_simple_600s.csv')
 
 
-# # Feature Engineering of Feature Set 2 - better technical indicators
+# # Feature Engineering of LOB Feature Set 2 - better technical indicators
+
+# In[ ]:
+
+lob_data = pd.read_csv('../btc-data/BTC_LOB_collected.csv')
+
 
 # In[274]:
 
@@ -344,6 +349,194 @@ lob_techind30.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_30s.csv')
 lob_techind60.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_60s.csv')
 lob_techind300.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_300s.csv')
 lob_techind600.to_csv(path_or_buf='../btc-data/BTC_LOB_techind_600s.csv')
+
+
+# In[5]:
+
+path = '../btc-data/BTC_LOB_techind_10s.csv'
+data10s = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_LOB_techind_30s.csv'
+data30s = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_LOB_techind_60s.csv'
+data1m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_LOB_techind_300s.csv'
+data5m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_LOB_techind_600s.csv'
+data10m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+
+# In[6]:
+
+data10s
+
+
+# In[7]:
+
+data30s
+
+
+# In[8]:
+
+data1m
+
+
+# In[9]:
+
+data5m
+
+
+# In[10]:
+
+data10m
+
+
+# # Feature Engineering of Trades Feature Set
+
+# In[6]:
+
+def generate_trade_features(frame, freq):
+    close = frame['Price']
+    frame['K360'] = stoch_K(close, 360)
+    frame['K180'] = stoch_K(close, 180)
+    frame['K60'] = stoch_K(close, 60)
+    frame['D360'] = stoch_D(frame['K360'], 360)
+    frame['D180'] = stoch_D(frame['K180'], 180)
+    frame['D60'] = stoch_D(frame['K60'], 60)
+    frame['sD360'] = slow_D(frame['D360'], 360)
+    frame['sD180'] = slow_D(frame['D180'], 180)
+    frame['sD60'] = slow_D(frame['D60'], 60)
+    frame['MOM360'] = momentum(close, 360)
+    frame['MOM180'] = momentum(close, 180)
+    frame['MOM60'] = momentum(close, 60)
+    frame['ROC360'] = roc(close, 360)
+    frame['ROC180'] = roc(close, 180)
+    frame['ROC60'] = roc(close, 60)
+    frame['LWR360'] = lw_R(close, 360)
+    frame['LWR180'] = lw_R(close, 180)
+    frame['LWR60'] = lw_R(close, 60)
+    frame['ADOSC360'] = ad_osc(close, 360)
+    frame['ADOSC180'] = ad_osc(close, 180)
+    frame['ADOSC60'] = ad_osc(close, 60)
+    frame['DISP360'] = disp(close, 360)
+    frame['DISP180'] = disp(close, 180)
+    frame['DISP60'] = disp(close, 60)
+    frame['OSCP180-360'] = oscp(close, 180, 360)
+    frame['OSCP60-180'] = oscp(close, 60, 180)
+    frame['RSI360'] = rsi(close, 360)
+    frame['RSI180'] = rsi(close, 180)
+    frame['RSI60'] = rsi(close, 60)
+    frame['CCI360'] = cci(close, 360)
+    frame['CCI180'] = cci(close, 180)
+    frame['CCI60'] = cci(close, 60)
+    frame['DELTAP'] = close.diff()
+    
+    frame['Price'] = frame['Price'].shift(-1)
+    frame['DELTAP'] = frame['DELTAP'].shift(-1)
+    frame.set_index(frame.index.shift(1, freq=freq), inplace = True)
+    frame = frame[3*359:-1]
+    
+    return frame
+
+
+# In[7]:
+
+trades = pd.read_csv('../btc-data/BTC_Trades_clean.csv', parse_dates=True)
+trades.drop_duplicates(subset = 'Date', inplace = True)
+trades.set_index('Date', inplace = True)
+trades.drop(['Trade ID', 'Amount'], axis = 1, inplace= True)
+trades.index = pd.to_datetime(trades.index)
+trades.sort_index(inplace= True)
+
+trades30 = trades.reindex(pd.date_range(start = trades.index[0],
+                                        end = trades.index[-1], freq='30s'),
+                          method = 'nearest')
+
+trades60 = trades.reindex(pd.date_range(start = trades.index[0],
+                                        end = trades.index[-1], freq='60s'),
+                          method = 'nearest')
+
+trades300 = trades.reindex(pd.date_range(start = trades.index[0],
+                                        end = trades.index[-1], freq='300s'),
+                          method = 'nearest')
+
+trades600 = trades.reindex(pd.date_range(start = trades.index[0],
+                                        end = trades.index[-1], freq='600s'),
+                          method = 'nearest')
+
+
+# In[8]:
+
+trades_techind30 = generate_trade_features(trades30, '30s')
+trades_techind30.replace([np.inf, -np.inf], np.nan, inplace = True)
+trades_techind30.fillna(method='ffill', inplace = True)
+
+
+# In[9]:
+
+trades_techind60 = generate_trade_features(trades60, '60s')
+trades_techind60.replace([np.inf, -np.inf], np.nan, inplace = True)
+trades_techind60.fillna(method='ffill', inplace = True)
+
+
+# In[10]:
+
+trades_techind300 = generate_trade_features(trades300, '300s')
+trades_techind300.replace([np.inf, -np.inf], np.nan, inplace = True)
+trades_techind300.fillna(method='ffill', inplace = True)
+
+
+# In[11]:
+
+trades_techind600 = generate_trade_features(trades600, '60s')
+trades_techind600.replace([np.inf, -np.inf], np.nan, inplace = True)
+trades_techind600.fillna(method='ffill', inplace = True)
+
+
+# In[12]:
+
+trades_techind30.to_csv(path_or_buf='../btc-data/BTC_Trades_techind_30s.csv')
+trades_techind60.to_csv(path_or_buf='../btc-data/BTC_Trades_techind_60s.csv')
+trades_techind300.to_csv(path_or_buf='../btc-data/BTC_Trades_techind_300s.csv')
+trades_techind600.to_csv(path_or_buf='../btc-data/BTC_Trades_techind_600s.csv')
+
+
+# In[13]:
+
+path = '../btc-data/BTC_Trades_techind_30s.csv'
+data30s = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_Trades_techind_60s.csv'
+data1m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_Trades_techind_300s.csv'
+data5m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+path = '../btc-data/BTC_Trades_techind_600s.csv'
+data10m = pd.read_csv(path, index_col = 0, parse_dates = True)
+
+
+# In[14]:
+
+data30s
+
+
+# In[15]:
+
+data1m
+
+
+# In[16]:
+
+data5m
+
+
+# In[17]:
+
+data10m
 
 
 # In[ ]:

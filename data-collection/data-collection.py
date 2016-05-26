@@ -268,7 +268,7 @@ print(bidside)
 
 # # Collect and transform order book states from CryptoIQ
 
-# In[4]:
+# In[3]:
 
 URL = 'https://cryptoiq.io/api/marketdata/orderbooktop/bitstamp/btcusd/2016-%s'
 
@@ -292,7 +292,7 @@ lob_data.set_index('time', inplace=True)
 lob_data.index = pd.to_datetime(lob_data.index)
 
 
-# # Create indices for evenly spaced time series (10s)
+# # Create indices for evenly spaced time series
 
 # In[16]:
 
@@ -311,11 +311,6 @@ lob_data['bids'] = lob_data['bids'].map(dict)
 # In[19]:
 
 lob_data = lob_data.reindex(dates, method = 'nearest')
-
-
-# In[20]:
-
-lob_data
 
 
 # In[21]:
