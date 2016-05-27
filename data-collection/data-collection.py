@@ -273,7 +273,7 @@ print(bidside)
 
 # # Collect and transform order book states from CryptoIQ
 
-# In[3]:
+# In[ ]:
 
 URL = 'https://cryptoiq.io/api/marketdata/orderbooktop/bitstamp/btcusd/2016-%s'
 
