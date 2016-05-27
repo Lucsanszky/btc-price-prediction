@@ -77,7 +77,7 @@
 # * http://cs229.stanford.edu/proj2014/Isaac%20Madan,%20Shaurya%20Saluja,%20Aojia%20Zhao,Automated%20Bitcoin%20Trading%20via%20Machine%20Learning%20Algorithms.pdf
 # * https://www.kaggle.com/c/the-winton-stock-market-challenge
 
-# In[1]:
+# In[2]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -88,7 +88,7 @@ get_ipython().magic('load_ext version_information')
 get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[2]:
+# In[4]:
 
 from deap import base, creator, tools, algorithms
 from IPython.display import display
@@ -106,7 +106,7 @@ sns.set()
 toolb = base.Toolbox()
 
 
-# In[3]:
+# In[21]:
 
 # Note: chart names could occasionally change on blockchain.info
 URL = 'https://blockchain.info/charts/%s?timespan=all&format=csv'
@@ -174,15 +174,14 @@ def prep_data(date_from, date_to):
 
 # # Data pre-processing
 
-# In[4]:
+# In[22]:
 
 widgets.interact(prep_data, date_from = '1/4/2012', date_to = '4/13/2016')
-get_ipython().magic("time prep_data('1/4/2012', '4/13/2016')")
 
 
 # # Regression plots
 
-# In[6]:
+# In[25]:
 
 data = pd.concat(FRAMES, axis = 1)
 sns.set_context("notebook", font_scale=1.35)
@@ -192,10 +191,9 @@ sns.pairplot(data, x_vars = CHARTS[8:12], y_vars = CHARTS[0], size = 7, kind = '
 sns.pairplot(data, x_vars = CHARTS[12:16], y_vars = CHARTS[0], size = 7, kind = 'reg')
 sns.pairplot(data, x_vars = CHARTS[16:20], y_vars = CHARTS[0], size = 7, kind = 'reg')
 sns.pairplot(data, x_vars = CHARTS[20:], y_vars = CHARTS[0], size = 7, kind = 'reg')
-sns.set()
 
 
-# In[7]:
+# In[26]:
 
 def filter_features(mask):
     return list(map(lambda t: t[1], filter(lambda t: t[0], zip(mask, FEATURES))))
@@ -282,10 +280,9 @@ def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[8]:
+# In[27]:
 
 def feature_selection(gen_num, indiv_num):
-    
     regr = linear_model.LinearRegression()
 
     r2_results = nsga2_feat_sel(regr, regr.score, (1.0, -1.0), gen_num, indiv_num)
@@ -325,7 +322,7 @@ widgets.interact(feature_selection,
 
 # # Visualizing the actual and predicted prices 
 
-# In[9]:
+# In[31]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
@@ -353,9 +350,6 @@ def evaluate(b):
     btc_X_train = filtered_features[train_dates[0] : train_dates[-2]]
     btc_y_train = pd.DataFrame(FRAMES[0])[train_dates[1] : train_dates[-1]]
     
-    #print(btc_X_train.tail())
-    #print(btc_y_train.head())
-
     # Train the learner on the training data
     # and evaluate the performance by the test data
 
@@ -367,9 +361,6 @@ def evaluate(b):
     # Generate the test set based on the date indices
     btc_X_test = filtered_features[test_dates[0] : test_dates[-2]]
     btc_y_test = pd.DataFrame(FRAMES[0])[test_dates[1] : test_dates[-1]]
-    
-    #print(btc_X_test.head())
-    #print(btc_y_test.head())
     
     # Create a dataframe from the predicted values
     btc_y_pred = pd.DataFrame(regr.predict(btc_X_test), columns = ['market-price'])
@@ -387,23 +378,20 @@ def evaluate(b):
     
     max_min_spread = np.max(btc_y_test) - np.min(btc_y_test)
     print ('R2: %.9f' % (regr.score(btc_X_test, btc_y_test)))
-    print ('RMSE: %.9f' % rmse_score, ', RMSE%: ', 100 * rmse_score / max_min_spread, '%')
-    print ('MAE: %.9f' % mae_score, ', MAE%: ', 100 * mae_score / max_min_spread, '%')
-    print ('\nSign change classification accuracy: ', 100 * accuracy, '%\n\n')
+    print ('RMSE: %.9f' % rmse_score)
+    print ('MAE: %.9f' % mae_score)
+    print ('\nSign change accuracy: ', 100 * accuracy, '%\n\n')
     
     # Create a dataframe for residual plots
     resid_df = pd.concat([btc_X_test, btc_y_pred], axis = 1)
-    #resid_df.rename(columns = {'market-price': 'residuals'}, inplace=True)
-    #print(btc_X_test.shape)
-    #print(btc_y_pred.shape)
     
     # Plot the residuals
     sns.set_context("notebook", font_scale=2.5)
     g = sns.PairGrid(resid_df, x_vars=list(filtered_features.columns), y_vars=['market-price'], size=7)
     g.map(sns.residplot)
-    sns.set()
     
     # Plot the time series of the actual and predicted values
+    sns.set_context("notebook", font_scale=1.35)
     plt.figure(figsize = (20,10))
     sns.tsplot(data = [btc_y_test.values, btc_y_pred.values])
     
@@ -412,90 +400,8 @@ def evaluate(b):
     plt.plot(btc_y_pred.index, btc_y_pred, label = 'Predicted Prices')
     plt.legend()
     
-    #print(btc_y_test.head())
-    #print(btc_y_pred.head())
-    
 button.on_click(evaluate)
 display(button)
-
-
-# In[8]:
-
-url = URL = 'https://blockchain.info/charts/market-price?timespan=all&format=csv'
-date_parse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y %H:%M:%S')
-
-regr = linear_model.LinearRegression()
-
-data = pd.read_csv(url, parse_dates=[0], date_parser = date_parse)
-data.columns = ['Date', 'Price']
-data.set_index('Date', inplace = True)
-data.index = pd.to_datetime(data.index)
-
-train_prices = pd.DataFrame(data['2012-01-04' : '2014-12-31'].values, index = data['2012-01-04' : '2014-12-31'].index)
-train_prices['Price 2'] = data['2012-01-05' : '2015-01-01'].values
-train_prices['Price 3'] = data['2012-01-06' : '2015-01-02'].values
-train_prices['Price 4'] = data['2012-01-07' : '2015-01-03'].values
-train_prices['Price 5'] = data['2012-01-08' : '2015-01-04'].values
-train_prices.rename(columns={0: 'Price 1'})
-
-X_train = train_prices
-
-y_train = data['2012-01-09' : '2015-01-05']
-
-test_prices = pd.DataFrame(data['2015-01-05':'2016-05-03'].values, index = data['2015-01-05':'2016-05-03'].index)
-test_prices['Price 2'] = data['2015-01-06':'2016-05-04'].values
-test_prices['Price 3'] = data['2015-01-07':'2016-05-05'].values
-test_prices['Price 4'] = data['2015-01-08':'2016-05-06'].values
-test_prices['Price 5'] = data['2015-01-09':'2016-05-07'].values
-test_prices.rename(columns={0: 'Price 1'})
-
-X_test = test_prices
-
-y_test = data['2015-01-10':'2016-05-08']
-
-regr.fit(X_train, y_train)
-
-y_pred = regr.predict(X_test)
-
-#print('wut: ', regr.predict(X_test)[0])
-#print('act: ', y_test.values[0])
-
-#print(y_pred)
-
-for i in range(len(y_test)):
-    print('Date: ', y_test.index[i])
-    print('Actual: ', y_test.values[i], 'Predicted: ', y_pred[i], '\n\n')
-
-act_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_test.values, y_test.values[1:])))
-pred_ticks = list(map(lambda t: 1 if t[1] - t[0] >= 0 else -1, zip(y_pred, y_pred[1:])))
-act_pred_cmp = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
-accuracy = np.sum(act_pred_cmp) / len(act_ticks)
-
-print(accuracy)
-
-plt.figure(figsize = (20,10))
-plt.plot(y_test.values, label = 'Actual Prices')
-plt.plot(y_pred, label = 'Predicted Prices')
-plt.legend()
-
-#print(y_test.tail())
-#print('TOMORROW! ', regr.predict([[446.73], [447.28], [455.03], [458.16]]))
-
-
-# In[154]:
-
-#data.columns = ['Price1']
-prices = pd.DataFrame(data['2012-01-04' : '2014-12-31'].values, index = data['2012-01-04' : '2014-12-31'].index)
-prices['Price 2'] = data['2012-01-05' : '2015-01-01'].values
-prices['Price 3'] = data['2012-01-06' : '2015-01-02'].values
-prices['Price 4'] = data['2012-01-07' : '2015-01-03'].values
-prices['Price 5'] = data['2012-01-08' : '2015-01-04'].values
-prices.rename(columns={0: 'Prices 1'})
-
-
-# In[ ]:
-
-
 
 
 # In[ ]:

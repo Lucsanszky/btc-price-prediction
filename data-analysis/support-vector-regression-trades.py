@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# # Linear Support Vector Machine Regression with Stochastic Gradient Descent
+# # Support Vector Regression with Stochastic Gradient Descent (Ticker Data)
 
 # # References
 # 
@@ -11,7 +11,7 @@
 # * http://www.sciencedirect.com/science/article/pii/S0305048301000263
 # * http://link.springer.com/book/10.1007/978-3-642-35289-8
 
-# In[1]:
+# In[4]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -19,31 +19,33 @@ get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
 
 get_ipython().magic('load_ext version_information')
-get_ipython().magic('version_information deap, matplotlib, numpy, pandas, pymc3, seaborn, sklearn, theano')
+get_ipython().magic('version_information deap, matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[2]:
+# In[150]:
 
-from nsga2 import *
+from deap import base, creator, tools, algorithms
 from IPython.display import display
 from ipywidgets import widgets
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pymc3 as pm
 import random
 import seaborn as sns
 from sklearn import linear_model
 from sklearn import preprocessing as preproc
 from sklearn import svm
 from sklearn.dummy import DummyRegressor
-from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr, mean_absolute_error as mae
+from sklearn.metrics import mean_squared_error as mse, mean_absolute_error as mae
 
 np.set_printoptions(threshold=np.nan)
 sns.set()
+sns.set_color_codes()
+sns.set_context("notebook", font_scale=1.35)
+toolb = base.Toolbox()
 
 
-# In[3]:
+# In[7]:
 
 path = '../btc-data/BTC_Trades_techind_30s.csv'
 data30s = pd.read_csv(path, index_col = 0, parse_dates = True)
@@ -57,12 +59,30 @@ data5m = pd.read_csv(path, index_col = 0, parse_dates = True)
 path = '../btc-data/BTC_Trades_techind_600s.csv'
 data10m = pd.read_csv(path, index_col = 0, parse_dates = True)
 
-datas = [data30s, data1m, data5m, data10m]
+
+# In[8]:
+
+data30s
 
 
-# In[4]:
+# In[9]:
 
-def directional_symmetry(act, pred):
+data1m
+
+
+# In[10]:
+
+data5m
+
+
+# In[11]:
+
+data10m
+
+
+# In[151]:
+
+def accuracy(act, pred):
     act_ticks = list(map(lambda x: 1 if x >= 0 else 0, act.values))
     pred_ticks = list(map(lambda x: 1 if x >= 0 else 0, pred))
     d = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
@@ -70,21 +90,16 @@ def directional_symmetry(act, pred):
     return np.sum(d) / len(act_ticks)
 
 
-# In[5]:
-
-#def filter_features(mask):
-#    return list(map(lambda t: t[1], filter(lambda t: t[0], zip(mask, FEATURES))))
+# In[153]:
 
 def fitness_fun(model):
     method, indiv, dataset = model
     
     X_train, X_valid, y_train, y_valid = dataset
     
-    #print(X_train.columns)
-    
-    # Train the learner on the training data
-    # and evaluate the performance by the test data
-    
+    # Sometimes the GA assigns the value 0 or less
+    # to the parameters, causing the model to fail.
+    # The lines below prevent this.
     if indiv[0] <= 0:
         indiv[0] = 0.0001
         
@@ -98,12 +113,12 @@ def fitness_fun(model):
     
     pred = method.predict(X_valid)
     rmse = np.sqrt(mse(y_valid, pred))
-    r2 = method.score(X_valid, y_valid)
-    dir_sym = directional_symmetry(y_valid, pred)
+    dir_sym = accuracy(y_valid, pred)
     
     return dir_sym, rmse
 
 def nsga2_feat_sel(method, gen_num, indiv_num, dataset):
+    # GA configuration
     creator.create("FitnessMulti", base.Fitness, weights = (1.0, -1.0))
     creator.create("Individual", list, fitness=creator.FitnessMulti)
     toolb.register('alpha', random.uniform, 1e-8, 0.01)
@@ -116,17 +131,21 @@ def nsga2_feat_sel(method, gen_num, indiv_num, dataset):
     toolb.register('mutate', tools.mutGaussian, mu = 0.0001, sigma = 0.001, indpb = 0.1)
     toolb.register('select', tools.selNSGA2)
 
+    # Initialise the population and the fitness function
     population = toolb.population()
     fits = map (toolb.evaluate, map(lambda x: (method, x, dataset), population))
 
+    # Initialize the placeholder
+    # for the best individuals
     hof = tools.HallOfFame(1)
-
+    
+    # Run the fitness function on the population
     for fit, ind in zip(fits, population):
         ind.fitness.values = fit
 
     best = np.ndarray((gen_num, 2))
-    top_RMSE = []
 
+    # Start the evolution
     for gen in range(gen_num):
         offspring = algorithms.varOr(population, toolb, lambda_ = indiv_num, cxpb = 0.55, mutpb = 0.15)
         hof.update(offspring)
@@ -139,15 +158,13 @@ def nsga2_feat_sel(method, gen_num, indiv_num, dataset):
         population = toolb.select(offspring + population, k = indiv_num)
 
         best[gen] = (hof[0].fitness.values)
-        top_RMSE = hof[0]
 
     chromosome = hof[0]
-    #selected_features = list(map(lambda t: t[1], filter(lambda t: t[0], zip(hof[0], CHARTS[1:]))))
     
     return best, method, chromosome
 
 
-# In[6]:
+# In[154]:
 
 def feature_selection(gen_num, indiv_num, model, dataset):
     results = nsga2_feat_sel(model, gen_num, indiv_num, dataset)
@@ -159,17 +176,17 @@ def feature_selection(gen_num, indiv_num, model, dataset):
     print ('Chromosome: ', chromosome, '\n')
     
     # Create dataframes from the metrics
-    results_df = pd.DataFrame(results[0], columns = ['DS', 'RMSE'])
+    results_df = pd.DataFrame(results[0], columns = ['Accuracy', 'RMSE'])
     results_df.insert(0, 'Generation', results_df.index)
     
     # Plot the best individuals of each generation based on the metrics
-    g = sns.PairGrid(results_df, y_vars=['DS', 'RMSE'], x_vars = 'Generation', size=7, aspect = 2.5)
+    g = sns.PairGrid(results_df, y_vars=['Accuracy', 'RMSE'], x_vars = 'Generation', size=7, aspect = 2.5)
     g.map(plt.plot)
     
     return best_model, chromosome
 
 
-# In[7]:
+# In[155]:
 
 def evaluate(data, features):
     X, y = data[features], data['DELTAP'].copy()
@@ -210,21 +227,16 @@ def evaluate(data, features):
     
     best_model.alpha = chromosome[0]
     best_model.eta0 = chromosome[1]
-    
-    for i in range(len(X_train)):
-        x = X_train.ix[i]
-        y = y_train.ix[i]
-        best_model.partial_fit(x.reshape(1,-1), y.ravel(1,))
+    best_model.fit(X_train, y_train)
     
     pred = []
     
+    # Testing and online learning
     for i in range(len(X_test)):
         x = X_test.ix[i]
         y = y_test.ix[i]
         pred.append(best_model.predict(x.reshape(1,-1)))
         best_model.partial_fit(x.reshape(1,-1), y.ravel(1,))
-    
-    #pred = best_model.predict(X_test)
     
     dr = DummyRegressor(strategy = 'constant', constant = 0)
     dr.fit(X_train, y_train)
@@ -242,27 +254,28 @@ def evaluate(data, features):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, best_model.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    print('Training set accuracy: ',directional_symmetry(y_train, best_model.predict(X_train)),
-          ', Test set accuracy: ', directional_symmetry(y_test, pred), '\n')
-    print('Baseline accuracy: ', directional_symmetry(y_test, pred_base))
+    print('Training set accuracy: ',accuracy(y_train, best_model.predict(X_train)),
+          ', Test set accuracy: ', accuracy(y_test, pred), '\n')
+    print('Baseline accuracy: ', accuracy(y_test, pred_base))
     print('Baseline RMSE: ', rmse_base)
+    print('Mean Price change: ', np.mean(y))
     print('==============================================\n\n')
 
     plt.figure(figsize = (20,10))
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
-    #plt.xlim('2016-04-24 17', '2016-04-24 20')
-    #plt.ylim(-0.1,0.1)
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.ylabel('Price Change')
     plt.legend()
     
     plt.figure(figsize = (20,10))
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
-    plt.xlim('2016-04-12 17', '2016-04-12 20')
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.xlim('2016-04-12 20', '2016-04-13 07')
+    plt.ylabel('Price Change')
     plt.legend()
 
 
-# In[28]:
+# In[156]:
 
 features = ['K360', 'K180', 'K60', 'D180',
             'D60', 'sD180', 'sD60', 'MOM60',
@@ -271,10 +284,10 @@ features = ['K360', 'K180', 'K60', 'D180',
             'DISP180', 'DISP60', 'OSCP60-180', 'RSI360',
             'RSI180', 'RSI60', 'CCI180']
 
-evaluate(datas[0].copy(), features)
+evaluate(data30s.copy(), features)
 
 
-# In[29]:
+# In[157]:
 
 features = ['K360', 'K180', 'K60', 'D360', 'D180',
             'D60', 'sD180', 'sD60', 'MOM360', 'LWR360',
@@ -283,31 +296,31 @@ features = ['K360', 'K180', 'K60', 'D360', 'D180',
             'OSCP180-360', 'OSCP60-180', 'RSI360',
             'RSI180', 'RSI60', 'CCI180'] 
 
-evaluate(datas[1].copy(), features)
+evaluate(data1m.copy(), features)
 
 
-# In[30]:
+# In[163]:
 
 features = datas[2].drop(['Price', 'DELTAP'], axis = 1).columns
 
-evaluate(datas[2].copy(), features)
+evaluate(data5m.copy(), features)
 
 
-# In[31]:
+# In[167]:
 
-features = datas[3].drop(['Price', 'DELTAP'], axis = 1).columns
+features = data10m.drop(['Price', 'DELTAP'], axis = 1).columns
 
-evaluate(datas[3].copy(), features)
+evaluate(data10m.copy(), features)
 
 
 # # Backtesting
 
-# In[20]:
+# In[227]:
 
-features = datas[2].drop(['Price', 'DELTAP'], axis = 1).columns
+features = data5m.drop(['Price', 'DELTAP'], axis = 1).columns
 
-X, y = datas[2][features].copy(), datas[2]['DELTAP'].copy()
-prices = datas[2]['Price'].copy()
+X, y = data5m[features].copy(), data5m['DELTAP'].copy()
+prices = data5m['Price'].copy()
 
 train_dates = X.index[:int(0.6*len(X))]
 test_dates = X.index[int(0.6*len(X)):]
@@ -327,13 +340,12 @@ for df in X_train.columns.tolist():
 sgd = linear_model.SGDRegressor(shuffle = True, penalty = 'l2', epsilon = 0,
                                 loss = 'epsilon_insensitive',
                                 n_iter = np.ceil(10**6 / len(X_train)),
-                                alpha = 0.0025714378357970737,
-                                eta0 = 0.009966325596284829)
+                                alpha = 0.0004, eta0 = 0.002)
+
 pred = []
 results = [0]
 balance = 0
 coins = 0
-
 
 sgd.fit(X_train, y_train)
 
@@ -355,13 +367,31 @@ for i in range(len(X_test) - 1):
     pred.append(sgd.predict(x.reshape(1,-1)))
     sgd.partial_fit(x.reshape(1,-1), y.ravel(1,))
 
-plt.figure(figsize = (20,10))
-plt.plot(y_test.index, np.cumsum(results))
+fig = plt.figure(figsize = (20,10))
+ax1 = fig.add_subplot(111)
+ax1.plot(y_test.index, np.cumsum(results),
+         label = 'Profit (USD)')
+ax1.axhline(color='r')
+plt.ylabel('Profit (USD)')
+ax2 = ax1.twinx()
+ax2.plot(y_test.index,
+         prices[test_dates[0]:test_dates[-1]],
+         color = 'g', label = 'Price (USD)')
+plt.ylabel('Price (USD)')
+ax2.set_yticks(np.linspace(ax2.get_yticks()[0],
+                           ax2.get_yticks()[-1],
+                           len(ax1.get_yticks())))
 
-directional_symmetry(y_test, pred)
-#plt.plot(y_test.index, pred, label = 'Predicted Prices')
-#
-#plt.legend()
+ax1.legend(loc = 2)
+ax2.legend()
+
+fig = plt.figure(figsize = (20, 3))
+plt.plot(y_test.index[:-1], y_test[:-1], label = 'Actual Price Changes')
+plt.plot(y_test.index[:-1], pred, label = 'Predicted Price Changes')
+plt.ylabel('Price Change')
+plt.legend(loc = 4)
+
+accuracy(y_test, pred)
 
 
 # In[ ]:

@@ -1,14 +1,14 @@
 
 # coding: utf-8
 
-# # Bayesian Ridge Regression - Technical Indicators
+# # Bayesian Ridge Regression (LOB Data)
 
 # # References 
 # 
 # * http://www.machinelearning.org/proceedings/icml2004/papers/354.pdf
 # * http://blog.applied.ai/bayesian-inference-with-pymc3-part-2/
 
-# In[1]:
+# In[5]:
 
 get_ipython().magic('matplotlib inline')
 
@@ -16,10 +16,10 @@ get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
 
 get_ipython().magic('load_ext version_information')
-get_ipython().magic('version_information matplotlib, numpy, pandas, pymc3, seaborn, sklearn')
+get_ipython().magic('version_information matplotlib, numpy, pandas, seaborn, sklearn')
 
 
-# In[2]:
+# In[7]:
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,19 +35,10 @@ from sklearn.metrics import mean_squared_error as mse, accuracy_score as acc_scr
 
 np.set_printoptions(threshold=np.nan)
 sns.set()
+sns.set_context("notebook", font_scale=1.35)
 
 
-# In[3]:
-
-def directional_symmetry(act, pred):
-    act_ticks = list(map(lambda x: 1 if x >= 0 else 0, act.values))
-    pred_ticks = list(map(lambda x: 1 if x >= 0 else 0, pred))
-    d = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
-    
-    return np.sum(d) / len(act_ticks)
-
-
-# In[4]:
+# In[8]:
 
 path = '../btc-data/BTC_LOB_techind_10s.csv'
 data10s = pd.read_csv(path, index_col = 0, parse_dates = True)
@@ -64,15 +55,47 @@ data5m = pd.read_csv(path, index_col = 0, parse_dates = True)
 path = '../btc-data/BTC_LOB_techind_600s.csv'
 data10m = pd.read_csv(path, index_col = 0, parse_dates = True)
 
-datas = [data10s, data30s, data1m, data5m, data10m]
+
+# In[9]:
+
+data10s
+
+
+# In[10]:
+
+data30s
+
+
+# In[11]:
+
+data1m
+
+
+# In[12]:
+
+data5m
+
+
+# In[13]:
+
+data10m
+
+
+# In[14]:
+
+def accuracy(act, pred):
+    act_ticks = list(map(lambda x: 1 if x >= 0 else 0, act.values))
+    pred_ticks = list(map(lambda x: 1 if x >= 0 else 0, pred))
+    d = list(map(lambda t: t[0] == t[1], zip(act_ticks, pred_ticks)))
+    
+    return np.sum(d) / len(act_ticks)
 
 
 # # Data Preprocessing
 
-# In[96]:
+# In[22]:
 
 def evaluate(data):
-    
     X, y = data, data['DELTAP'].copy()
         
     train_dates = X.index[:int(0.7*len(X))]
@@ -82,8 +105,6 @@ def evaluate(data):
     print('Last training date: ', train_dates[-1])
     print('First testing date: ', test_dates[0])
     print('Last testing date: ', test_dates[-1])
-
-    # Create DataFrames for the training set. Input: mid prices from the previous hour, output: mid price change in the next 10 seconds.
 
     X_train = X[train_dates[0]:train_dates[-1]].drop(['mid price', 'DELTAP'], axis = 1)
     y_train = y[train_dates[0]:train_dates[-1]]
@@ -101,9 +122,9 @@ def evaluate(data):
     clf.fit(X_train, y_train)
 
     plt.figure(figsize=(20, 10))
-    plt.title("Weights of the previous prices")
+    plt.title("Weights of the Technical Indicators")
     plt.plot(clf.coef_)
-    plt.xlabel("Prices")
+    plt.xlabel("Technical Indicators")
     plt.ylabel("Weights")
     
     selected = list(map(lambda t: t[0],
@@ -114,16 +135,17 @@ def evaluate(data):
     pd.DataFrame(pred, index = test_dates)
 
     plt.figure(figsize = (20,10))
-    plt.title('Prediction with previous 360 prices')
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
+    plt.title('Prediction with all the indicators')
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.ylabel('Price Changes')
     plt.legend()
 
     plt.figure(figsize = (20,10))
-    plt.title('Zoom in')
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
-    plt.xlim('2016-04-08 00', '2016-04-10 00')
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.xlim('2016-04-12 20', '2016-04-13 07')
+    plt.ylabel('Price Changes')
     plt.legend()
     
     print('\n\nResults of prediction with all the technical indicators')
@@ -137,7 +159,8 @@ def evaluate(data):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
+    print('Training set accuracy: ',accuracy(y_train, clf.predict(X_train)),
+          ', Test set accuracy: ', accuracy(y_test, pred), '\n')
     print('===========================================================\n\n')
     print(selected, '\n\n')
     
@@ -148,9 +171,9 @@ def evaluate(data):
     clf.fit(X_train, y_train)
 
     plt.figure(figsize=(20, 10))
-    plt.title("Weights of the previous prices")
+    plt.title("Weights of the selected Technical Indicators")
     plt.plot(clf.coef_)
-    plt.xlabel("Prices")
+    plt.xlabel("Technical Indicators")
     plt.ylabel("Weights")
 
     X_test = X[selected][test_dates[0]:test_dates[-1]]
@@ -160,16 +183,17 @@ def evaluate(data):
     pd.DataFrame(pred, index = test_dates)
 
     plt.figure(figsize = (20,10))
-    plt.title('Prediction with previous 360 prices')
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
+    plt.title('Prediction with selected indicators')
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.ylabel('Price Changes')
     plt.legend()
 
     plt.figure(figsize = (20,10))
-    plt.title('Zoom in')
-    plt.plot(y_test.index, y_test, label = 'Actual Prices')
-    plt.plot(y_test.index, pred, label = 'Predicted Prices')
-    plt.xlim('2016-04-08 00', '2016-04-10 00')
+    plt.plot(y_test.index, y_test, label = 'Actual Price Changes')
+    plt.plot(y_test.index, pred, label = 'Predicted Price Changes')
+    plt.xlim('2016-04-12 20', '2016-04-13 07')
+    plt.ylabel('Price Changes')
     plt.legend()
     
     print('\n\nResults of prediction with selected technical indicators')
@@ -183,38 +207,39 @@ def evaluate(data):
     mae_test = mae(y_test, pred)
     mae_train = mae(y_train, clf.predict(X_train))
     print('Training set MAE: ', mae_train, ', Test set MAE: ', mae_test)
-    print('Directional Symmetry: ', directional_symmetry(y_test, pred), '\n')
+    print('Training set accuracy: ',accuracy(y_train, clf.predict(X_train)),
+          ', Test set accuracy: ', accuracy(y_test, pred), '\n')
     print('============================================================\n\n')
-
-
-# In[97]:
-
-evaluate(datas[0].copy())
-
-
-# In[98]:
-
-evaluate(datas[1].copy())
-
-
-# In[99]:
-
-evaluate(datas[2].copy())
-
-
-# In[100]:
-
-evaluate(datas[3].copy())
-
-
-# In[101]:
-
-evaluate(datas[4].copy())
 
 
 # In[23]:
 
-g = sns.PairGrid(datas[4][datas[4].drop(['mid price', 'DELTAP'], axis = 1).columns][:50])
+evaluate(data10s.copy())
+
+
+# In[24]:
+
+evaluate(data30s.copy())
+
+
+# In[25]:
+
+evaluate(data1m.copy())
+
+
+# In[26]:
+
+evaluate(data5m.copy())
+
+
+# In[27]:
+
+evaluate(data10m.copy())
+
+
+# In[23]:
+
+g = sns.PairGrid(data10m[data10m.drop(['mid price', 'DELTAP'], axis = 1).columns][:50])
 g.map_upper(plt.scatter)
 g.map_diag(plt.hist)
 g.map_lower(sns.kdeplot)
@@ -222,7 +247,7 @@ g.map_lower(sns.kdeplot)
 
 # In[25]:
 
-g = sns.PairGrid(datas[4][['K360','K180','K60','LWR360','LWR180','LWR60']][:500])
+g = sns.PairGrid(data10m[['K360','K180','K60','LWR360','LWR180','LWR60']][:500])
 g.map_upper(plt.scatter)
 g.map_diag(plt.hist)
 g.map_lower(sns.kdeplot)
@@ -230,7 +255,7 @@ g.map_lower(sns.kdeplot)
 
 # In[26]:
 
-g = sns.PairGrid(datas[4][['MOM360','MOM180','MOM60','ROC360','ROC180','ROC60']][:500])
+g = sns.PairGrid(data10m[['MOM360','MOM180','MOM60','ROC360','ROC180','ROC60']][:500])
 g.map_upper(plt.scatter)
 g.map_diag(plt.hist)
 g.map_lower(sns.kdeplot)
