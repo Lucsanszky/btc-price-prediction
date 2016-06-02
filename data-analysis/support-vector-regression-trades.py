@@ -315,7 +315,7 @@ evaluate(data10m.copy(), features)
 
 # # Backtesting
 
-# In[227]:
+# In[238]:
 
 features = data5m.drop(['Price', 'DELTAP'], axis = 1).columns
 
@@ -342,41 +342,63 @@ sgd = linear_model.SGDRegressor(shuffle = True, penalty = 'l2', epsilon = 0,
                                 n_iter = np.ceil(10**6 / len(X_train)),
                                 alpha = 0.0004, eta0 = 0.002)
 
-pred = []
-results = [0]
-balance = 0
-coins = 0
+brr = linear_model.BayesianRidge(compute_score=True)
+
+pred_sgd = []
+results_sgd = [0]
+balance_sgd = 0
+coins_sgd = 0
+
+coins_brr = 0
+pred_brr = []
+results_brr = [0]
+balance_brr = 0
+
 
 sgd.fit(X_train, y_train)
+brr.fit(X_train, y_train)
 
 for i in range(len(X_test) - 1):
     x = X_test.ix[i]
     y = y_test.ix[i]
     prev_sign = np.sign(y_test.ix[i-1])
-    pred_sign = np.sign(sgd.predict(x.reshape(1,-1)))
+    sign_sgd = np.sign(sgd.predict(x.reshape(1,-1)))
+    sign_brr = np.sign(brr.predict(x.reshape(1,-1)))
     curr_price = prices[i]
     
-    if (pred_sign == 1 and  prev_sign == -1 and coins <= 0):
-        balance = - curr_price
-        coins = coins + 1
-    if (pred_sign == -1 and  prev_sign == 1 and coins >= 0):
-        coins = coins - 1
-        balance = curr_price
+    if (sign_sgd == 1 and  prev_sign == -1 and coins_sgd <= 0):
+        balance_sgd = - curr_price
+        coins_sgd = coins_sgd + 1
+    if (sign_sgd == -1 and  prev_sign == 1 and coins_sgd >= 0):
+        coins_sgd = coins_sgd - 1
+        balance_sgd = curr_price
+        
+    if (sign_brr == 1 and  prev_sign == -1 and coins_brr <= 0):
+        balance_brr = - curr_price
+        coins_brr = coins_brr + 1
+    if (sign_brr == -1 and  prev_sign == 1 and coins_brr >= 0):
+        coins_brr = coins_brr - 1
+        balance_brr = curr_price
     
-    results.append(balance)
-    pred.append(sgd.predict(x.reshape(1,-1)))
+    results_sgd.append(balance_sgd)
+    results_brr.append(balance_brr)
+    pred_sgd.append(sgd.predict(x.reshape(1,-1)))
+    pred_brr.append(brr.predict(x.reshape(1,-1)))
     sgd.partial_fit(x.reshape(1,-1), y.ravel(1,))
+    
 
 fig = plt.figure(figsize = (20,10))
 ax1 = fig.add_subplot(111)
-ax1.plot(y_test.index, np.cumsum(results),
-         label = 'Profit (USD)')
-ax1.axhline(color='r')
+ax1.plot(y_test.index, np.cumsum(results_sgd),
+         label = 'SVM-SGD Profit (USD)', color = 'r')
+ax1.plot(y_test.index, np.cumsum(results_brr),
+         label = 'BRR Profit (USD)', color = 'g')
+ax1.axhline(color='k')
 plt.ylabel('Profit (USD)')
 ax2 = ax1.twinx()
 ax2.plot(y_test.index,
          prices[test_dates[0]:test_dates[-1]],
-         color = 'g', label = 'Price (USD)')
+         color = 'b', label = 'Price (USD)', alpha = 0.5)
 plt.ylabel('Price (USD)')
 ax2.set_yticks(np.linspace(ax2.get_yticks()[0],
                            ax2.get_yticks()[-1],
@@ -386,8 +408,9 @@ ax1.legend(loc = 2)
 ax2.legend()
 
 fig = plt.figure(figsize = (20, 3))
-plt.plot(y_test.index[:-1], y_test[:-1], label = 'Actual Price Changes')
-plt.plot(y_test.index[:-1], pred, label = 'Predicted Price Changes')
+plt.plot(y_test.index[:-1], y_test[:-1], label = 'Actual Price Changes', alpha = 0.5)
+plt.plot(y_test.index[:-1], pred_brr, label = 'Predicted Price Changes (BRR)')
+plt.plot(y_test.index[:-1], pred_sgd, label = 'Predicted Price Changes (SVM-SGD)')
 plt.ylabel('Price Change')
 plt.legend(loc = 4)
 
