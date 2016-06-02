@@ -3,8 +3,6 @@
 
 # # Feature Engineering
 
-# 
-
 # # References
 # 
 # * http://www.sciencedirect.com/science/article/pii/S0925231203003722
@@ -41,60 +39,18 @@ np.set_printoptions(threshold=np.nan)
 # In[5]:
 
 def stoch_K(close, window):
-    '''Calculates the fast stochastic oscillator %K.
-    
-    Input:
-    close  -- DataFrame to calculate on
-    window -- Size of the window
-    
-    Output: 
-    %K -- double
-    '''
-    
     low = close.rolling(window, center = False).min()
     high = close.rolling(window, center = False).max()
     
     return 100 * (close - low) / (high - low)
 
 def stoch_D(K, window):
-    '''Calculates the stochastic oscillator %D.
-    %D is the moving average of %K.
-    
-    Input:
-    close  -- DataFrame to calculate on
-    window -- Size of the window
-    
-    Output: 
-    %D -- double
-    '''
-    
     return K.rolling(window, center = False).mean()
 
 def slow_D(D, window):
-    '''Calculates the slow stochastic oscillator %D.
-    Slow %D is the moving average of %D.
-    
-    Input:
-    close  -- DataFrame to calculate on
-    window -- Size of the window
-    
-    Output: 
-    Slow %D -- double
-    '''
-    
     return D.rolling(window, center = False).mean()
 
 def momentum(close, window):
-    '''Calculates the momentum.
-    
-    Input:
-    close  -- DataFrame to calculate on
-    window -- Size of the window
-    
-    Output: 
-    Momentum -- double
-    '''
-    
     dif = lambda x: x[-1] - x[0]
     
     return close.rolling(window, center = False).apply(dif)

@@ -1,42 +1,64 @@
 
 # coding: utf-8
 
-# # Daily Price Prediction with Network Features
-# 
-# Extensive research was carried out on historic Bitcoin price prediction via Multiple Linear Regression. Originally, MLR was used as a "reference model" to develop a framework/pipeline, where one can easily switch between different ML models and metrics to perform Bitcoin network feature selection with the Nondominated Sorting Genetic Algorithm II. Initially, the results were surprisingly good and thus further analysis was conducted. However, it turned out that the remarkable results were based on bad assumptions. 
+# # Daily Price Prediction with Network Features 
 # 
 # ## NSGA-II - A Multiobjective Evolutionary Algorithm
 # 
-# Nondominated Sorting Genetic Algorithm II is an elitist, multiobjective evolutionary algorithm which overcomes the common problems of nondominated sorting evolutionary algorithms: computational complexity, nonelitist approach, reliance on the concept of sharing, thus requiring an extra parameter. Since we try to extract meaningful features from the Bitcoin network to predict the said cryptocurrency's price as accurately as possible, it is crucial to design our feature selection process to minimize the number of features while maximizing the predictive power of our model. Minimizing the feature set is necessary to reduce the variance of our model, thus reducing the probability of overfitting while the need to maximize predictive power is self-explanatory. It is clear that we need to solve a multi-objective optimization problem. As it was shown by Siedlecki and Sklansky that genetic algorithms are successful at large scale feature selection and due to the nature of our optimization problem, NSGA-II can be considered as a good candidate for this problem.
+# Nondominated Sorting Genetic Algorithm II is an elitist, multiobjective evolutionary algorithm which overcomes the common problems of nondominated sorting evolutionary algorithms: computational complexity, nonelitist approach, reliance on the concept of sharing, thus requiring an extra parameter. Since we are trying to generate a high quality feature set, it is important to design our feature selection process to minimise the number of features while maximising the predictive power of our model. Minimising the feature set is necessary to reduce the variance of our model, thus reducing the probability of overfitting while the need to maximise predictive power is self-explanatory. It is clear that we need to solve a multi-objective optimisation problem. As it was shown by Siedlecki and Sklansky that genetic algorithms are successful at large scale feature selection and due to the nature of our optimisation problem, NSGA-II can be considered as a good candidate for this problem.
 # 
 # ## Multiple Linear Regression
 # 
-# As mentioned above, the model was originally chosen to serve as a reference for developing a highly configurable pipline for Bitcoin feature selection and price prediction. We opted to use Ordianry Least Squares as an estimator for the model. The reason of choice was again simplicity. Regarding the usefuleness of the model for price prediction, one would think that it is highly unlikely that it will successfully predict price movements since the model presumes linear relationships between the features of the Bitcoin network and the prices of Bitcoin, while it also assumes that the input features are independent. The initial results contradicted these assumptions. After some further research, it turned out that the good results stemmed from the inclusion of features that included the market price itself. Clearly, if we would like to predict the market price of Bitcoin based on the most relevant networks features, we have to exclude the features that are based on the market price itself. The assumption, that we will know the values of these independent variables before the market price which we wish to predict, is flawed. The research group of Madan et al. at Stanford University commited this mistake as well. Their Binomial Generalized Linear Model yielded seemingly stellar classification results.
+# Madan et al. achieved remarkable daily price prediction results with a simple linear classifier, using Bitcoin network features exclusively. Their binomial generalised linear model produced a spectacular accuracy score of 98.7%. It is difficult not to be sceptical when encountering such stellar results. Hence, we decided to further investigate this problem.
+# When conducting machine learning research, it is usually a good idea to start with simpler models first. For this reason and because of insightfulness, we opted to choose an ordinary least squares multiple linear regression model for analysis.
 # 
 # ## Feature Selection
 # 
-# The following 20 features were downloaded from blockchain.info:
+# The following 22 features were downloaded from blockchain.info:
 # 
-# * 'transaction-fees-usd'
-# * 'network-deficit'
-# * 'n-transactions'
-# * 'n-transactions-excluding-popular'
-# * 'n-transactions-excluding-chains-longer-than-10'
-# * 'n-transactions-excluding-chains-longer-than-100'
-# * 'n-transactions-excluding-chains-longer-than-1000'
-# * 'n-transactions-excluding-chains-longer-than-10000'
-# * 'n-unique-addresses'
-# * 'n-transactions-per-block'
-# * 'n-orphaned-blocks'
-# * 'output-volume'
-# * 'estimated-transaction-volume-usd'
-# * 'trade-volume'
-# * 'tx-trade-ratio'
-# * 'hash-rate'
-# * 'difficulty'
-# * 'median-confirmation-time'
-# * 'bitcoin-days-destroyed'
-# * 'avg-block-size'
+# miners-revenue
+# 
+# cost-per-transaction
+# 
+# transaction-fees-usd
+# 
+# network-deficit
+# 
+# n-transactions
+# 
+# n-transactions-excluding-popular
+# 
+# n-transactions-excluding-chains-longer-than-10
+# 
+# n-transactions-excluding-chains-longer-than-100
+# 
+# n-transactions-excluding-chains-longer-than-1000
+# 
+# n-transactions-excluding-chains-longer-than-10000
+# 
+# n-unique-addresses
+# 
+# n-transactions-per-block
+# 
+# n-orphaned-blocks
+# 
+# output-volume
+# 
+# estimated-transaction-volume-usd
+# 
+# trade-volume
+# 
+# tx-trade-ratio
+# 
+# hash-rate
+# 
+# difficulty
+# 
+# median-confirmation-time
+# 
+# bitcoin-days-destroyed
+# 
+# avg-block-size
 # 
 # Siedlecki and Sklansky demonstrated that genetic algorithms perform well on large scale feature selection problems. They used feature sets where the number of features exceeded 20.  Hence, our problem is a good candidate for the GA approach. The reasons behind the limit 20 is discussed in their paper. 
 # 
@@ -50,25 +72,57 @@
 # 
 # **R<sup>2</sup> - Goodnes-of-Fit**
 # 
-# R<sup>2</sup> (or Coefficient of Determination) is a commonly used metric when evaluating regression models which indicates how well the regression line approximates the given data. Its value is in the range of [0,1], where 1 indicates a perfect fit. One problem with R<sup>2</sup> is that it does not filter out irrelevant features. One can add new, meaningless variables to the model while increasing its R<sup>2</sup> score. Also this metric could potentially over-, under-predict the data, thus other metrics should be used in conjuction.
-# It is calculated as follows:
+# R<sup>2</sup> (or Coefficient of Determination) is a commonly used metric when evaluating regression models which indicates how well the regression line approximates the given data. Although its value is usually in the range of [0,1], where 1 indicates a perfect fit, the score can end up being negative. One problem with R<sup>2</sup> is that it does not filter out irrelevant features. One can add new, meaningless variables to the model while increasing its R<sup>2</sup> score. Also this metric could potentially over-, under-predict the data, thus other metrics should be used in conjuction.
+# The R<sup>2</sup> statistic calculates the ratio between the residual and total sum-of-squares subtracted from 1:
+# 
+# $$ R^2(y, \hat{y}) = 1 - \frac{\sum_{i = 0}^{n - 1} (y_i - \hat{y}_i)^2}{\sum_{i = 0}^{n - 1}(y_i - \bar{y})^2}$$
+# 
+# where y are the actual output values and $\hat{y}$ are the predicted output values. 
 # 
 # **Root-Mean-Square Error**
 # 
-# RMSE is a good metric for numerical predictions which indicates the sample standard deviation between the observed and predicted data. It is usually a preferable metric over both the Mean Absolute Error and the Mean-Square error because RMSE penalizes larger errors more than the MAE, which is crucial to good price prediction, while it is easier to interpret than the MSE due to having the same dimensions as the predicted values (y).
-# It is calculated as follows:
+# RMSE is a good metric for numerical predictions which indicates the sample standard deviation between the observed and predicted data. It is usually a preferable metric over both the Mean Absolute Error and the Mean-Square error because RMSE penalizes larger errors more than the MAE, which is crucial to good price prediction, while it is easier to interpret than the MSE due to having the same dimensions as the predicted values ($\hat{y}$).
+# $$ RMSE(y, \hat{y}) = \sqrt{\frac{\sum_{i = 0}^{n - 1}(y_i - \hat{y}_i)^2}{n}} $$
 # 
 # **Mean Absolute Error**
 # 
 # As mentioned before, RMSE is usually the preferred regression metric over MAE, due to penalizing large errors. However, MAE is worth considering in cases of noisy data. We do not want to penalize large errors that are irrelevant. For instance, during Winton Capital's stock price prediction Kaggle competition, MAE was a more fitting error metric for that problem compared to the RMSE. 
 # MAE is calculated as follows:
 # 
+# $$ MAE(y, \hat{y}) = \frac{\sum_{i = 0}^{n - 1}|y_i - \hat{y}_i|}{n}$$
+# 
+# 
+# **Directional Symmetry**
+# 
+# Since our ultimate goal is to devise profitable trading strategies based on our prediction models, it is necessary to include a metric which measures prediction power in terms of sign change accuracy. One might end up with remarkable RMSE and MAE scores for the predicted prices while the model is unable to predict the correct direction of the price movements, ultimately rendering it incapable of making good trading decisions. We opted to use directional symmetry for this purpose, which is a widely used metric score for calssifying price changes. Its original formula relies on using the actual prices to calculate the score:
+# $$ DS(y, \hat{y}) = \frac{100}{n - 1} \sum_{i = 2}^n d_i$$
+# 
+# $$
+# d_i =
+#   \begin{cases}
+#     1, & \quad \text{if }(y_i - y_{i - 1})(\hat{y}_i - \hat{y}_{i - 1}) \geq 0 \\
+#     0, & \quad \text{otherwise}\\
+#   \end{cases}
+# $$
+# 
+# However, in cases when we are predicting price changes, we will use a formula 
+# that relies on these price change values rather than the actual prices: 
+# 
+# $$ DS(y, \hat{y}) = \frac{100}{n} \sum_{i = 1}^n d_i$$
+# 
+# $$
+# d_i =
+#   \begin{cases}
+#     1, & \quad \text{if } sgn(y_i * \hat{y}_i)\geq 0 \\
+#     0, & \quad \text{otherwise}\\
+#   \end{cases}
+# $$
+# 
 # ## Results
 # 
-# As mentioned before, due to the nature of EAs, one cannot be sure that the extracted features are the most meaningful ones. Hence, it is a good idea to run the EA several times and use some intuition to improve the quality of the feature set. Some of the features that regularly came up initially, were **market-cap**, either **n-transactions** / **n-unique-addresses** / **n-transactions-per-block**, **trade-volume**, **output-volume**, **tx-trade-ratio**, **cost-per-transaction**, **miners-revenue**, **bitcoin-days-destroyed** and **avg-block-size**. If we observe the pairplots of these variables compared to the market price of Bitcoin in USD, which we would like to predict, one can immediately see that **market-cap**, **cost-per-transaction** and **miners-revenue** are highly collinear with the price of Bitcoin. Also, when running the algorithm with large populations through high number of iterations, these were the selected features in general, in addition to **n-unique-addresses**. After some further experimenting, our final feature set is as follows: 
-# **market-cap**, **n-unique-addresses**, **trade-volume**, **output-volume**, **cost-per-transaction**. This results in an RMSE of 13.03, an MAE of 10.12 and R<sup>2</sup> of 0.97. Considering that the price of Bitcoin during this period was between ~\$225 and ~\$470, an MAE of 10.12 and an RMSE of 13.03, with units in dollars, can be considered quite good. After visualizing the actual and predicted prices, we can see that our model usually overestimates the price of Bitcoin but captures the price changes quite accurately. However, this approach is flawed due to the reasons discussed above. Both **market-cap**, **cost-per-transaction** and **miners-revenue** depend on the market price itself, thus they were later replaced by some other features. The 98.7% classification accuracy result by Madan et al. originated from the inclusion of these features. Actually, a 100% classification result can be achieved if only the **market-cap** is included. 
-# After revising our approach and selecting the feature set more carefully, the following features were selected by the EA most commonly: **transaction-fees-usd**, **network-deficit**, **output-volume**, **estimated-transaction-volume-usd**, **tx-trade-ratio** and **bitcoin-days-destroyed**. Only the **network-deficit** demonstrated high collinearity with the market price. In our final model, we opted to replace **tx-trade-ratio** with **trade-volume** after analysing the regression plots. This final setting yielded an R2 score of 0.79, a RMSE of \$35.96 which compared to the price spread gives an error of 14.5%, while the MAE resulted in \$29.04 and 11.71%.
-# Comparing the price sign changes of the actual and predicted values gave an accuracy score of 55.98%, which is not too reassuring. We may conclude, that despite the careful feature selection, multiple linear regression is not a good model for Bitcoin price prediction, as expected.
+# As mentioned before, due to the nature of EAs, one cannot be sure that the extracted features are the most meaningful ones. Hence, it is a good idea to run the EA several times and use some intuition to improve the quality of the feature set. 
+# After revising our approach and selecting the feature set more carefully, the following features were selected by the GA most commonly: **miners-revenue**, **network-deficit**, **cost-per-transaction**, **output-volume**, **estimated-transaction-volume-usd**, **tx-trade-ratio** and **trade-volume**. Observing the regression plots, the **network-deficit** and **miners-revenue** shows high collinearity with the market price. Using these features, we end up with R2: 0.625977721, RMSE: 47.549666269, MAE: 35.556726415, Sign change accuracy:  53.2188841202. We were experimenting with this feature set by removing certain variables and using different combinations but the prediction power of the model remained roughly the same. The most notable change occured when we removed **tx-trade-ratio**, resulting in R2: 0.771213976, RMSE: 37.188912801, MAE: 28.233852304, Sign change accuracy:  51.0729613734. We also tried replacing the **tx-trade-ratio** with its components by adding **n-transactions** to the feature set and keeping **trade-volume** (recall the **tx-trade-ratio** is the ratio between **n-transactions** and **trade-volume**), however this greatly reduced the prediction power of our model. Analyising the residual plots, we did not discover any anomalies, apart from an unbalanced x-axis in the cases of **output-volume** and **trade-volume** but these did not hurt the model. On the contrary, when we excluded them the model's prediction performance decreased. All the other residual plots show symmetrically distributed values around the middle, except maybe the residual plot of **tx-trade-ratio**. There are no signs of heteroscedasticity or any clear patterns that would indicate a nonlinear relationship. According to our feature set, trading activity and mining related prices are the main factors that might influence the price of bitcoin. Our conclusion is consistent with the findings of Greaves and Au. 
+# Regarding the results of Madan et al., we are quite certain that their Binomial GLM model is suffering from "time travelling bias". Although we did not reproduce their results due to lack of information about their model, but according to their phrasings, we think that they used features from the same day rather than the previous one when they were conducting "price predictions". When we replicated this scenario with our multiple linear regression model, we could achieve remarkable results too. It is worth noting, that their model actually suffered some performance decrease since they used all of their features. By only using the **market-cap** as an input feature, one could achieve a 100% classification accuracy. But then again, this whole scenario is unrealistic. It is impossible to know the actual market capitalisation before the actual price. Also in this scenario, there is no need for learning once we have the value of the market capitalisation. A simple calculator would suffice... And a time machine to obtain the actual value. 
 
 # # References
 # 
@@ -76,6 +130,7 @@
 # * http://sci2s.ugr.es/sites/default/files/files/Teaching/OtherPostGraduateCourses/MasterEstructuras/bibliografia/Deb_NSGAII.pdf
 # * http://cs229.stanford.edu/proj2014/Isaac%20Madan,%20Shaurya%20Saluja,%20Aojia%20Zhao,Automated%20Bitcoin%20Trading%20via%20Machine%20Learning%20Algorithms.pdf
 # * https://www.kaggle.com/c/the-winton-stock-market-challenge
+# * https://web.stanford.edu/class/cs224w/projects_2015/Using_the_Bitcoin_Transaction_Graph_to_Predict_the_Price_of_Bitcoin.pdf
 
 # In[2]:
 
@@ -280,7 +335,7 @@ def nsga2_feat_sel(method, metric, objective, gen_num, indiv_num):
 
 # # NSGA2-MLR feature selection with R2, RMSE and MAE metrics
 
-# In[27]:
+# In[33]:
 
 def feature_selection(gen_num, indiv_num):
     regr = linear_model.LinearRegression()
@@ -322,7 +377,7 @@ widgets.interact(feature_selection,
 
 # # Visualizing the actual and predicted prices 
 
-# In[31]:
+# In[34]:
 
 # Create the checkbox placeholder
 box = widgets.VBox()
