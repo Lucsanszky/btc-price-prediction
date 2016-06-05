@@ -315,7 +315,7 @@ evaluate(data10m.copy(), features)
 
 # # Backtesting
 
-# In[238]:
+# In[282]:
 
 features = data5m.drop(['Price', 'DELTAP'], axis = 1).columns
 
@@ -352,7 +352,7 @@ coins_sgd = 0
 coins_brr = 0
 pred_brr = []
 results_brr = [0]
-balance_brr = 0
+balance_brr = 5000
 
 
 sgd.fit(X_train, y_train)
@@ -362,23 +362,29 @@ for i in range(len(X_test) - 1):
     x = X_test.ix[i]
     y = y_test.ix[i]
     prev_sign = np.sign(y_test.ix[i-1])
+    change = y_test.ix[i]
     sign_sgd = np.sign(sgd.predict(x.reshape(1,-1)))
     sign_brr = np.sign(brr.predict(x.reshape(1,-1)))
     curr_price = prices[i]
     
     if (sign_sgd == 1 and  prev_sign == -1 and coins_sgd <= 0):
-        balance_sgd = - curr_price
+        balance_sgd = y
         coins_sgd = coins_sgd + 1
-    if (sign_sgd == -1 and  prev_sign == 1 and coins_sgd >= 0):
+    elif (sign_sgd == -1 and  prev_sign == 1 and coins_sgd >= 0):
         coins_sgd = coins_sgd - 1
-        balance_sgd = curr_price
+        balance_sgd = y
+    else:
+        balance_sgd = 0
         
     if (sign_brr == 1 and  prev_sign == -1 and coins_brr <= 0):
-        balance_brr = - curr_price
+        balance_brr = y
         coins_brr = coins_brr + 1
-    if (sign_brr == -1 and  prev_sign == 1 and coins_brr >= 0):
+    elif (sign_brr == -1 and  prev_sign == 1 and coins_brr >= 0):
         coins_brr = coins_brr - 1
-        balance_brr = curr_price
+        balance_brr = y
+    else:
+        balance_brr = 0
+     
     
     results_sgd.append(balance_sgd)
     results_brr.append(balance_brr)
@@ -390,7 +396,7 @@ for i in range(len(X_test) - 1):
 fig = plt.figure(figsize = (20,10))
 ax1 = fig.add_subplot(111)
 ax1.plot(y_test.index, np.cumsum(results_sgd),
-         label = 'SVM-SGD Profit (USD)', color = 'r')
+         label = 'SVR-SGD Profit (USD)', color = 'r')
 ax1.plot(y_test.index, np.cumsum(results_brr),
          label = 'BRR Profit (USD)', color = 'g')
 ax1.axhline(color='k')
@@ -410,7 +416,7 @@ ax2.legend()
 fig = plt.figure(figsize = (20, 3))
 plt.plot(y_test.index[:-1], y_test[:-1], label = 'Actual Price Changes', alpha = 0.5)
 plt.plot(y_test.index[:-1], pred_brr, label = 'Predicted Price Changes (BRR)')
-plt.plot(y_test.index[:-1], pred_sgd, label = 'Predicted Price Changes (SVM-SGD)')
+plt.plot(y_test.index[:-1], pred_sgd, label = 'Predicted Price Changes (SVR-SGD)')
 plt.ylabel('Price Change')
 plt.legend(loc = 4)
 
