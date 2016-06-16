@@ -161,6 +161,8 @@ sns.set()
 toolb = base.Toolbox()
 
 
+# # Data pre-processing
+
 # In[21]:
 
 # Note: chart names could occasionally change on blockchain.info
@@ -226,8 +228,6 @@ def prep_data(date_from, date_to):
         df_standard = pd.DataFrame(data=data_np_standard, index=df.index, columns=df.columns)
         FEATURES.append(df_standard)
 
-
-# # Data pre-processing
 
 # In[22]:
 
