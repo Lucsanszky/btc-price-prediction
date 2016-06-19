@@ -15,6 +15,8 @@ from IPython.display import Image
 from IPython.display import display
 
 
+# <center><h1>Ƀ</h1></center>
+
 # #WHAT?
 
 # #WHY?
@@ -25,29 +27,13 @@ from IPython.display import display
 
 # #EVALUATION METRICS
 # 
-# * <h4>Coefficient of Determination</h4>
+# * <h3>Coefficient of Determination</h3>
 # 
-# $$ R^2(y, \hat{y}) = 1 - \frac{\sum_{i = 1}^n (y_i - \hat{y}_i)^2}{\sum_{i = 1}^n(y_i - \bar{y})^2}$$
+# * <h3>Root-Mean-Square Error</h3>
 # 
-# * <h4>Root-Mean-Square Error</h4>
+# * <h3>Mean Absolute Error</h3>
 # 
-# $$ RMSE(y, \hat{y}) = \sqrt{\frac{\sum_{i = 1}^n(y_i - \hat{y}_i)^2}{n}} $$
-# 
-# * <h4>Mean Absolute Error</h4>
-# 
-# $$ MAE(y, \hat{y}) = \frac{\sum_{i = 1}^n|y_i - \hat{y}_i|}{n}$$
-# 
-# * <h4>Directional Symmetry</h4>
-# 
-# $$DS(y, \hat{y}) = \frac{100}{n} \sum_{i = 1}^n d_i$$
-# 
-# $$
-# d_i =
-#   \begin{cases}
-#     1, & \quad \text{if } sgn(y_i * \hat{y}_i)\geq 0 \\
-#     0, & \quad \text{otherwise}\\
-#   \end{cases}
-# $$
+# * <h3>Directional Symmetry</h3>
 
 # #DAILY PRICE PREDICTION - APPROACH
 
@@ -258,7 +244,28 @@ display(a,b)
 
 # <center><h1>?</h1></center>
 
-# In[ ]:
-
-
-
+# #EVALUATION METRICS
+# 
+# * <h4>Coefficient of Determination</h4>
+# 
+# $$ R^2(y, \hat{y}) = 1 - \frac{\sum_{i = 1}^n (y_i - \hat{y}_i)^2}{\sum_{i = 1}^n(y_i - \bar{y})^2}$$
+# 
+# * <h4>Root-Mean-Square Error</h4>
+# 
+# $$ RMSE(y, \hat{y}) = \sqrt{\frac{\sum_{i = 1}^n(y_i - \hat{y}_i)^2}{n}} $$
+# 
+# * <h4>Mean Absolute Error</h4>
+# 
+# $$ MAE(y, \hat{y}) = \frac{\sum_{i = 1}^n|y_i - \hat{y}_i|}{n}$$
+# 
+# * <h4>Directional Symmetry</h4>
+# 
+# $$DS(y, \hat{y}) = \frac{100}{n} \sum_{i = 1}^n d_i$$
+# 
+# $$
+# d_i =
+#   \begin{cases}
+#     1, & \quad \text{if } sgn(y_i * \hat{y}_i)\geq 0 \\
+#     0, & \quad \text{otherwise}\\
+#   \end{cases}
+# $$
